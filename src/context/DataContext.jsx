@@ -124,6 +124,12 @@ export const DataProvider = ({ children }) => {
     const fetchingRef = React.useRef(false);
 
     const fetchProfile = async (userId) => {
+        if (!supabase) {
+            addToLog('Supabase yok');
+            setLastError('Supabase yapılandırması bulunamadı');
+            return;
+        }
+
         // Prevent concurrent fetches
         if (fetchingRef.current) {
             addToLog('Skip: Already fetching');
@@ -143,13 +149,14 @@ export const DataProvider = ({ children }) => {
             if (error) {
                 if (error.code === 'PGRST116') {
                     addToLog('Missing -> Creating');
+                    const { data: authUser } = await supabase.auth.getUser();
                     const { error: insertError } = await supabase
                         .from('profiles')
                         .insert([
                             {
                                 id: userId,
-                                email: (await supabase.auth.getUser()).data.user?.email,
-                                full_name: (await supabase.auth.getUser()).data.user?.user_metadata?.full_name,
+                                email: authUser?.user?.email,
+                                full_name: authUser?.user?.user_metadata?.full_name,
                                 role: 'student'
                             }
                         ]);
