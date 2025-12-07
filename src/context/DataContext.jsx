@@ -17,6 +17,7 @@ export const DataProvider = ({ children }) => {
     ]);
 
     const [session, setSession] = useState(null);
+    const [authLoading, setAuthLoading] = useState(true);
     const [userRole, setUserRole] = useState(null); // 'admin', 'teacher', 'student'
     const [userProfile, setUserProfile] = useState(null); // Full profile object
     const [lastError, setLastError] = useState(null); // DEBUG State
@@ -60,18 +61,21 @@ export const DataProvider = ({ children }) => {
         addToLog('Init');
         let mounted = true; // Prevent state updates after unmount
 
-        // Fallback: If no event fires after 500ms, try getSession
-        const fallbackTimer = setTimeout(async () => {
-            if (mounted && !session && !userRole) {
-                addToLog('Fallback getSession');
-                const { data: { session: s } } = await supabase.auth.getSession();
-                if (s && mounted) {
-                    setSession(s);
-                    await delay(100); // Wait for token to be fully ready
-                    await fetchProfile(s.user.id);
+        const initializeSession = async () => {
+            try {
+                const { data: initial } = await supabase.auth.getSession();
+                if (mounted && initial?.session) {
+                    setSession(initial.session);
+                    await fetchProfile(initial.session.user.id);
                 }
+            } catch (err) {
+                console.error('Initial session load failed:', err);
+            } finally {
+                if (mounted) setAuthLoading(false);
             }
-        }, 800);
+        };
+
+        initializeSession();
 
         // onAuthStateChange handles session events
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -84,19 +88,21 @@ export const DataProvider = ({ children }) => {
                     await delay(100); // Small delay to ensure token is ready
                     if (mounted) await fetchProfile(session.user.id);
                 }
+                setAuthLoading(false);
             } else if (event === 'TOKEN_REFRESHED') {
                 setSession(session);
+                setAuthLoading(false);
             } else if (event === 'SIGNED_OUT') {
                 setSession(null);
                 setUserRole(null);
                 setStudentList([]);
                 setSelectedStudent(null);
+                setAuthLoading(false);
             }
         });
 
         return () => {
             mounted = false;
-            clearTimeout(fallbackTimer);
             subscription.unsubscribe();
         };
     }, []);
@@ -113,14 +119,6 @@ export const DataProvider = ({ children }) => {
 
         try {
             addToLog('Fetch: ' + userId?.slice(0, 8));
-
-            // Ensure we have a valid session before querying
-            const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-            if (sessionError || !sessionData?.session) {
-                addToLog('No valid session');
-                fetchingRef.current = false;
-                return;
-            }
 
             const { data, error } = await supabase
                 .from('profiles')
@@ -191,6 +189,13 @@ export const DataProvider = ({ children }) => {
             // setSelectedStudent(null); // Explicitly null to force selection or empty view
         }
     };
+
+    // Ensure we always have a profile after session is restored
+    useEffect(() => {
+        if (session && !userRole && !authLoading) {
+            fetchProfile(session.user.id);
+        }
+    }, [session, userRole, authLoading]);
 
     // Fetch Data on Load (re-run when selectedStudent changes)
     useEffect(() => {
@@ -360,15 +365,36 @@ export const DataProvider = ({ children }) => {
         }
     };
 
+    const refreshApp = async () => {
+        setAuthLoading(true);
+        const { data } = await supabase.auth.getSession();
+        if (data?.session) {
+            setSession(data.session);
+            await fetchProfile(data.session.user.id);
+        }
+        setAuthLoading(false);
+    };
+
     return (
         <DataContext.Provider value={{
             session,
             userRole,
             userProfile,
+            authLoading,
             studentList,
             selectedStudent,
             setSelectedStudent,
-            stats, examHistory, subjects, dailyLogs, addExam, deleteExam, addDailyLog, calculateLGS, debugHistory, loading
+            stats,
+            examHistory,
+            subjects,
+            dailyLogs,
+            addExam,
+            deleteExam,
+            addDailyLog,
+            calculateLGS,
+            debugHistory,
+            loading,
+            refreshApp
         }}>
             {children}
         </DataContext.Provider>
