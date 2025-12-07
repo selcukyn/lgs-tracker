@@ -51,6 +51,25 @@ export const AdminUsers = () => {
                 throw new Error(data.msg || data.message || 'Kullanıcı oluşturulamadı');
             }
 
+            const createdUserId = data?.user?.id;
+
+            // Also create profile row so list can show it
+            if (createdUserId) {
+                const { error: profileErr } = await supabase
+                    .from('profiles')
+                    .upsert({
+                        id: createdUserId,
+                        email: newUser.email,
+                        full_name: newUser.full_name,
+                        role: newUser.role
+                    });
+
+                if (profileErr) {
+                    console.error('Profile insert error:', profileErr);
+                    alert('Kullanıcı oluşturuldu fakat profil eklenemedi: ' + profileErr.message);
+                }
+            }
+
             // Success
             alert('Kullanıcı başarıyla oluşturuldu!');
             setShowAddModal(false);
@@ -80,7 +99,7 @@ export const AdminUsers = () => {
 
         if (error) {
             console.error('Error fetching users:', error);
-            alert('Kullanıcı listesi çekilemedi.');
+            alert('Kullanıcı listesi çekilemedi: ' + error.message);
         } else {
             setUsers(data || []);
         }
