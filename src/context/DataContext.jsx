@@ -79,6 +79,7 @@ export const DataProvider = ({ children }) => {
 
             const currentSession = data?.session;
             setSession(currentSession);
+            hydrateFromSession(currentSession);
 
             if (currentSession?.user?.id) {
                 addToLog('Initial: ' + currentSession.user.id.slice(0, 8));
@@ -97,6 +98,7 @@ export const DataProvider = ({ children }) => {
             addToLog('Event: ' + event);
 
             setSession(nextSession);
+            hydrateFromSession(nextSession);
             if (nextSession?.user?.id) {
                 await delay(50);
                 if (active) await fetchProfile(nextSession.user.id, nextSession);
@@ -187,6 +189,25 @@ export const DataProvider = ({ children }) => {
             console.error('Error fetching profile:', error);
         } finally {
             fetchingRef.current = false;
+        }
+    };
+
+    // Prefer session metadata immediately to avoid flash/nulls while DB fetch runs
+    const hydrateFromSession = (nextSession) => {
+        const metaRole = nextSession?.user?.user_metadata?.role;
+        const fullName = nextSession?.user?.user_metadata?.full_name;
+        if (metaRole) {
+            setUserRole(metaRole);
+            setUserProfile(prev => ({
+                ...(prev || {}),
+                id: nextSession.user.id,
+                email: nextSession.user.email,
+                full_name: prev?.full_name || fullName,
+                role: metaRole
+            }));
+            if (metaRole === 'student') {
+                setSelectedStudent(nextSession.user.id);
+            }
         }
     };
 
