@@ -141,6 +141,8 @@ export const DataProvider = ({ children }) => {
                 .eq('id', userId)
                 .single();
 
+            console.info('[fetchProfile]', { userId, error, data });
+
             if (error) {
                 if (error.code === 'PGRST116') {
                     addToLog('Missing -> Creating');
@@ -165,7 +167,7 @@ export const DataProvider = ({ children }) => {
                     }
                 }
 
-                addToLog('Err: ' + error.code);
+                addToLog('Err: ' + (error.code || 'unknown'));
                 setLastError('Fetch Error: ' + error.message + ' Code: ' + error.code);
                 console.error('Profile fetch error:', error);
                 return;
@@ -182,6 +184,8 @@ export const DataProvider = ({ children }) => {
                 } else if (!studentList.length) {
                     fetchStudentList();
                 }
+            } else {
+                addToLog('No profile row');
             }
 
         } catch (error) {
