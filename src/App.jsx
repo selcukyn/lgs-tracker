@@ -26,9 +26,9 @@ const AppRoutes = () => {
 }
 
 const AuthGuard = () => {
-  const { session, loading } = useData();
+  const { session, authLoading } = useData();
 
-  if (loading) return <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Yükleniyor...</div>;
+  if (authLoading) return <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Yükleniyor...</div>;
 
   return (
     <Routes>
