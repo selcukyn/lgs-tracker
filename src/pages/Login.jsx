@@ -67,9 +67,11 @@ export const Login = () => {
 
                 <form style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>E-posta</label>
+                        <label htmlFor="login-email" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>E-posta</label>
                         <input
                             className="input-field"
+                            id="login-email"
+                            name="email"
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
@@ -78,9 +80,11 @@ export const Login = () => {
                         />
                     </div>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Şifre</label>
+                        <label htmlFor="login-password" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Şifre</label>
                         <input
                             className="input-field"
+                            id="login-password"
+                            name="password"
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
