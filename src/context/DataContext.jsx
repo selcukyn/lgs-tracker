@@ -83,7 +83,7 @@ export const DataProvider = ({ children }) => {
             if (currentSession?.user?.id) {
                 addToLog('Initial: ' + currentSession.user.id.slice(0, 8));
                 await delay(50); // allow token to hydrate
-                if (active) await fetchProfile(currentSession.user.id);
+                if (active) await fetchProfile(currentSession.user.id, currentSession);
             } else {
                 setLoading(false);
             }
@@ -99,7 +99,7 @@ export const DataProvider = ({ children }) => {
             setSession(nextSession);
             if (nextSession?.user?.id) {
                 await delay(50);
-                if (active) await fetchProfile(nextSession.user.id);
+                if (active) await fetchProfile(nextSession.user.id, nextSession);
             } else {
                 setUserRole(null);
                 setUserProfile(null);
@@ -117,8 +117,9 @@ export const DataProvider = ({ children }) => {
     // Fetch lock to prevent race conditions
     const fetchingRef = React.useRef(false);
 
-    const fetchProfile = async (userId) => {
-        if (!supabase) return;
+    const fetchProfile = async (userId, sessionOverride = null) => {
+        if (!supabase || !userId) return;
+
         // Prevent concurrent fetches
         if (fetchingRef.current) {
             addToLog('Skip: Already fetching');
@@ -129,13 +130,8 @@ export const DataProvider = ({ children }) => {
         try {
             addToLog('Fetch: ' + userId?.slice(0, 8));
 
-            // Ensure we have a valid session before querying
-            const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-            if (sessionError || !sessionData?.session) {
-                addToLog('No valid session');
-                fetchingRef.current = false;
-                return;
-            }
+            // Use provided session if any; otherwise fall back to cached session state.
+            const activeSession = sessionOverride || session;
 
             const { data, error } = await supabase
                 .from('profiles')
