@@ -28,7 +28,9 @@ export const AdminUsers = () => {
             const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
             const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-            const response = await fetch(`${supabaseUrl}/auth/v1/signup`, {
+            const redirectTo = `${window.location.origin}/login`;
+
+            const response = await fetch(`${supabaseUrl}/auth/v1/signup?redirect_to=${encodeURIComponent(redirectTo)}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -41,6 +43,9 @@ export const AdminUsers = () => {
                     data: {
                         full_name: newUser.full_name,
                         role: newUser.role
+                    },
+                    options: {
+                        emailRedirectTo: redirectTo
                     }
                 })
             });
@@ -52,6 +57,11 @@ export const AdminUsers = () => {
             }
 
             const createdUserId = data?.user?.id;
+
+            if (!createdUserId) {
+                alert('Kullanıcı oluşturuldu, fakat Supabase henüz kullanıcı ID’si döndürmedi. E-posta doğrulamasından sonra tekrar deneyin.');
+                return;
+            }
 
             // Also create profile row so list can show it
             if (createdUserId) {
