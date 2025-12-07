@@ -63,46 +63,54 @@ export const DataProvider = ({ children }) => {
             setLastError('Supabase yapılandırması eksik (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).');
             return;
         }
-        addToLog('Init');
-        let mounted = true; // Prevent state updates after unmount
 
-        // Fallback: If no event fires after 500ms, try getSession
-        const fallbackTimer = setTimeout(async () => {
-            if (mounted && !session && !userRole) {
-                addToLog('Fallback getSession');
-                const { data: { session: s } } = await supabase.auth.getSession();
-                if (s && mounted) {
-                    setSession(s);
-                    await delay(100); // Wait for token to be fully ready
-                    await fetchProfile(s.user.id);
-                }
+        addToLog('Init');
+        let active = true; // Prevent state updates after unmount / strict mode re-run
+
+        const loadInitialSession = async () => {
+            const { data, error } = await supabase.auth.getSession();
+            if (!active) return;
+
+            if (error) {
+                setLastError(error.message);
+                setLoading(false);
+                return;
             }
-        }, 800);
+
+            const currentSession = data?.session;
+            setSession(currentSession);
+
+            if (currentSession?.user?.id) {
+                addToLog('Initial: ' + currentSession.user.id.slice(0, 8));
+                await delay(50); // allow token to hydrate
+                if (active) await fetchProfile(currentSession.user.id);
+            } else {
+                setLoading(false);
+            }
+        };
+
+        loadInitialSession();
 
         // onAuthStateChange handles session events
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (!mounted) return;
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+            if (!active) return;
             addToLog('Event: ' + event);
 
-            if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-                setSession(session);
-                if (session) {
-                    await delay(100); // Small delay to ensure token is ready
-                    if (mounted) await fetchProfile(session.user.id);
-                }
-            } else if (event === 'TOKEN_REFRESHED') {
-                setSession(session);
-            } else if (event === 'SIGNED_OUT') {
-                setSession(null);
+            setSession(nextSession);
+            if (nextSession?.user?.id) {
+                await delay(50);
+                if (active) await fetchProfile(nextSession.user.id);
+            } else {
                 setUserRole(null);
+                setUserProfile(null);
                 setStudentList([]);
                 setSelectedStudent(null);
+                setLoading(false);
             }
         });
 
         return () => {
-            mounted = false;
-            clearTimeout(fallbackTimer);
+            active = false;
             subscription.unsubscribe();
         };
     }, []);
