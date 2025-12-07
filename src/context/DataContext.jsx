@@ -23,6 +23,7 @@ export const DataProvider = ({ children }) => {
     const [debugHistory, setDebugHistory] = useState(['Init']); // Trace
     const [studentList, setStudentList] = useState([]); // For admins/teachers
     const [selectedStudent, setSelectedStudent] = useState(null); // The user_id we are currently viewing
+    const PROFILE_CACHE_KEY = 'lgs-tracker-profile-cache';
 
     const addToLog = (msg) => {
         setDebugHistory(prev => [...prev.slice(-4), msg]);
@@ -178,6 +179,9 @@ export const DataProvider = ({ children }) => {
                 setLastError(null);
                 setUserRole(data.role);
                 setUserProfile(data);
+                try {
+                    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(data));
+                } catch { /* ignore */ }
 
                 if (data.role === 'student') {
                     setSelectedStudent(userId);
@@ -214,6 +218,19 @@ export const DataProvider = ({ children }) => {
             if (metaRole === 'student') {
                 setSelectedStudent(nextSession.user.id);
             }
+        }
+
+        // Warm from cached profile if available
+        const cachedRaw = localStorage.getItem(PROFILE_CACHE_KEY);
+        if (cachedRaw) {
+            try {
+                const cached = JSON.parse(cachedRaw);
+                if (cached?.id === nextSession?.user?.id) {
+                    setUserProfile(cached);
+                    if (cached.role) setUserRole(cached.role);
+                    if (cached.role === 'student') setSelectedStudent(cached.id);
+                }
+            } catch { /* ignore */ }
         }
     };
 
