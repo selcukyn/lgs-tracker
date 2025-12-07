@@ -141,7 +141,7 @@ export const DataProvider = ({ children }) => {
                 .eq('id', userId)
                 .single();
 
-            console.info('[fetchProfile]', { userId, error, data });
+            console.log('[fetchProfile]', { userId, error, data });
 
             if (error) {
                 if (error.code === 'PGRST116') {
@@ -167,7 +167,7 @@ export const DataProvider = ({ children }) => {
                     }
                 }
 
-                addToLog('Err: ' + (error.code || 'unknown'));
+                addToLog('ProfileErr:' + (error.code || 'unknown'));
                 setLastError('Fetch Error: ' + error.message + ' Code: ' + error.code);
                 console.error('Profile fetch error:', error);
                 return;
@@ -185,11 +185,13 @@ export const DataProvider = ({ children }) => {
                     fetchStudentList();
                 }
             } else {
-                addToLog('No profile row');
+                addToLog('ProfileEmpty');
+                setLastError('Profil bulunamadı');
             }
 
         } catch (error) {
-            addToLog('Exception: ' + error.message);
+            addToLog('ProfileEx:' + error.message);
+            setLastError(error.message);
             console.error('Error fetching profile:', error);
         } finally {
             fetchingRef.current = false;
@@ -433,7 +435,7 @@ export const DataProvider = ({ children }) => {
             studentList,
             selectedStudent,
             setSelectedStudent,
-            stats, examHistory, subjects, dailyLogs, addExam, deleteExam, addDailyLog, calculateLGS, debugHistory, loading, refreshApp
+            stats, examHistory, subjects, dailyLogs, addExam, deleteExam, addDailyLog, calculateLGS, debugHistory, loading, refreshApp, lastError
         }}>
             {children}
         </DataContext.Provider>
