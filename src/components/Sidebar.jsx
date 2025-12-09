@@ -1,15 +1,13 @@
-import React, { useState } from 'react';
-import { supabase } from '../supabase';
+import React from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { LayoutDashboard, PenTool, BookOpen, LogOut, Users, ChevronDown, User } from 'lucide-react';
 import { useData } from '../context/DataContext';
 
 export const Sidebar = () => {
     const navigate = useNavigate();
-    const { userRole, studentList, selectedStudent, setSelectedStudent } = useData();
-    console.log('Sidebar Render - Role:', userRole, 'StudentList:', studentList?.length); // DEBUG
+    const { userRole, userProfile, studentList, selectedStudent, setSelectedStudent, logout, loading } = useData();
 
-    // Only show admin link if admin
+    // Navigation items - admin gets extra menu
     const navItems = [
         { icon: LayoutDashboard, label: 'Panel', path: '/' },
         { icon: PenTool, label: 'Çözüm Girişi', path: '/entry' },
@@ -18,12 +16,15 @@ export const Sidebar = () => {
     ];
 
     const handleLogout = async () => {
-        if (supabase) {
-            await supabase.auth.signOut();
-            navigate('/login');
-        } else {
-            // Mock logout
-            navigate('/login');
+        await logout();
+        navigate('/login');
+    };
+
+    const getRoleLabel = (role) => {
+        switch (role) {
+            case 'admin': return 'Yönetici';
+            case 'teacher': return 'Öğretmen';
+            default: return 'Öğrenci';
         }
     };
 
@@ -43,16 +44,18 @@ export const Sidebar = () => {
             zIndex: 100
         }}>
             <div>
+                {/* Logo */}
                 <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <div style={{ width: '32px', height: '32px', background: 'var(--color-primary)', borderRadius: '8px' }}></div>
                     <h1 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'white' }}>LGS Takip</h1>
                 </div>
 
                 {/* Student Selector for Admin/Teacher */}
-                {/* Debug: Role is {userRole} */}
                 {['admin', 'teacher'].includes(userRole) && (
                     <div style={{ marginBottom: '1.5rem' }}>
-                        <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem', display: 'block' }}>ÖĞRENCİ SEÇİMİ</label>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem', display: 'block' }}>
+                            ÖĞRENCİ SEÇİMİ
+                        </label>
                         <div style={{ position: 'relative' }}>
                             <select
                                 value={selectedStudent || ''}
@@ -81,6 +84,7 @@ export const Sidebar = () => {
                     </div>
                 )}
 
+                {/* Navigation */}
                 <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {navItems.map((item) => (
                         <NavLink
@@ -105,8 +109,8 @@ export const Sidebar = () => {
                 </nav>
             </div>
 
-            <div style={{ marginTop: 'auto', zIndex: 1001 }}>
-                {/* User Info Display */}
+            <div style={{ marginTop: 'auto' }}>
+                {/* User Info */}
                 <div style={{
                     marginBottom: '1rem',
                     padding: '0.75rem',
@@ -131,17 +135,18 @@ export const Sidebar = () => {
                     </div>
                     <div style={{ overflow: 'hidden' }}>
                         <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'white', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                            {useData().userProfile?.full_name || 'Kullanıcı'}
+                            {userProfile?.full_name || 'Kullanıcı'}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            {useData().userRole === 'admin' ? 'Yönetici' : useData().userRole === 'teacher' ? 'Öğretmen' : 'Öğrenci'}
+                            {getRoleLabel(userRole)}
                         </div>
                     </div>
                 </div>
 
-                <div
+                {/* Logout Button */}
+                <button
                     onClick={handleLogout}
-                    role="button"
+                    disabled={loading}
                     style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -151,27 +156,18 @@ export const Sidebar = () => {
                         border: '1px solid rgba(239, 68, 68, 0.2)',
                         borderRadius: '8px',
                         color: '#ef4444',
-                        cursor: 'pointer',
+                        cursor: loading ? 'not-allowed' : 'pointer',
                         width: '100%',
                         transition: 'all 0.2s',
-                        position: 'relative',
-                        zIndex: 1002
+                        opacity: loading ? 0.5 : 1
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}
+                    onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)')}
                 >
                     <LogOut size={20} />
                     <span>Çıkış Yap</span>
-                </div>
-
-                {/* DEBUG INFO */}
-                <div style={{ marginTop: '1rem', fontSize: '0.6rem', color: 'gray', wordBreak: 'break-all' }}>
-                    DEBUG: {useData().session?.user?.email || 'No Session'} <br />
-                    ROLE: {useData().userRole || 'Null'} <br />
-                    LOG: {useData().debugHistory?.join(' -> ')}
-                </div>
+                </button>
             </div>
         </aside>
     );
 };
-

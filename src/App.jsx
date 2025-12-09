@@ -26,21 +26,21 @@ const AppRoutes = () => {
 }
 
 const AuthGuard = () => {
-  const { session, loading } = useData();
+  const { user, loading } = useData();
 
   if (loading) return <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Yükleniyor...</div>;
 
   return (
     <Routes>
-      <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
+      <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
 
       {/* Protected Routes */}
-      <Route path="/" element={session ? <Layout /> : <Navigate to="/login" />}>
+      <Route path="/" element={user ? <Layout /> : <Navigate to="/login" />}>
         <Route index element={<Dashboard />} />
         <Route path="entry" element={<DataEntry />} />
         <Route path="exams" element={<Exams />} />
         <Route path="exams/:id" element={<ExamDetail />} />
-        <Route path="admin-users" element={<AdminUsers />} /> {/* New Route */}
+        <Route path="admin-users" element={<AdminUsers />} />
       </Route>
     </Routes>
   );

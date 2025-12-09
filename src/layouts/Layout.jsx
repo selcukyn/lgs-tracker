@@ -5,7 +5,7 @@ import { useData } from '../context/DataContext';
 import { UserCircle } from 'lucide-react';
 
 export const Layout = () => {
-    const { userProfile, session } = useData();
+    const { userProfile, user } = useData();
 
     return (
         <div style={{ display: 'flex' }}>

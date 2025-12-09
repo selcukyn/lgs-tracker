@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
 
 const DataContext = createContext();
@@ -6,33 +6,29 @@ const DataContext = createContext();
 export const useData = () => useContext(DataContext);
 
 export const DataProvider = ({ children }) => {
+    // Core auth state
+    const [user, setUser] = useState(null);
+    const [userProfile, setUserProfile] = useState(null);
+    const [userRole, setUserRole] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [authError, setAuthError] = useState(null);
 
-    const [subjects] = useState([
+    // App data state
+    const [studentList, setStudentList] = useState([]);
+    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [examHistory, setExamHistory] = useState([]);
+    const [dailyLogs, setDailyLogs] = useState([]);
+
+    // LGS calculation subjects
+    const subjects = [
         { name: 'Türkçe', coef: 4.348, color: '#f59e0b', maxQuestions: 20 },
         { name: 'T.C. İnkılap Tarihi', coef: 1.666, color: '#f97316', maxQuestions: 10 },
         { name: 'Din Kültürü', coef: 1.899, color: '#06b6d4', maxQuestions: 10 },
         { name: 'Yabancı Dil', coef: 1.5075, color: '#8b5cf6', maxQuestions: 10 },
         { name: 'Matematik', coef: 4.2538, color: '#6366f1', maxQuestions: 20 },
         { name: 'Fen Bilimleri', coef: 4.1230, color: '#ec4899', maxQuestions: 20 },
-    ]);
+    ];
 
-    const [session, setSession] = useState(null);
-    const [userRole, setUserRole] = useState(null); // 'admin', 'teacher', 'student'
-    const [userProfile, setUserProfile] = useState(null); // Full profile object
-    const [lastError, setLastError] = useState(null); // DEBUG State
-    const [debugHistory, setDebugHistory] = useState(['Init']); // Trace
-    const [studentList, setStudentList] = useState([]); // For admins/teachers
-    const [selectedStudent, setSelectedStudent] = useState(null); // The user_id we are currently viewing
-    const PROFILE_CACHE_KEY = 'lgs-tracker-profile-cache';
-
-    const addToLog = (msg) => {
-        setDebugHistory(prev => [...prev.slice(-4), msg]);
-    };
-
-
-    const [examHistory, setExamHistory] = useState([]);
-    const [dailyLogs, setDailyLogs] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         totalQuestions: 0,
         examAverage: 0,
@@ -40,293 +36,313 @@ export const DataProvider = ({ children }) => {
         completionRate: 0
     });
 
-    // Calculate LGS Helper
+    // Calculate LGS score
     const calculateLGS = (results) => {
         let score = 194.752082;
         let totalNet = 0;
-
         subjects.forEach(sub => {
             const res = results[sub.name] || { net: 0 };
             score += res.net * sub.coef;
             totalNet += res.net;
         });
-
         return { score: score.toFixed(3), totalNet: totalNet.toFixed(2) };
     };
 
-    // Helper for delay
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    // Fetch user profile from database using direct fetch (bypass Supabase client issues)
+    const fetchProfile = useCallback(async (userId, accessToken) => {
+        if (!userId) return null;
 
-    useEffect(() => {
-        // If Supabase client is missing, avoid calling auth APIs and stop loading.
-        if (!supabase) {
-            setLoading(false);
-            setLastError('Supabase yapılandırması eksik (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).');
-            return;
+        console.log('[Auth] Fetching profile for:', userId);
+
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            console.error('[Auth] Missing Supabase config');
+            return null;
         }
-
-        addToLog('Init');
-        let active = true; // Prevent state updates after unmount / strict mode re-run
-
-        const loadInitialSession = async () => {
-            const { data, error } = await supabase.auth.getSession();
-            if (!active) return;
-
-            if (error) {
-                setLastError(error.message);
-                setLoading(false);
-                return;
-            }
-
-            const currentSession = data?.session;
-            setSession(currentSession);
-            hydrateFromSession(currentSession);
-
-            if (currentSession?.user?.id) {
-                addToLog('Initial: ' + currentSession.user.id.slice(0, 8));
-                await delay(50); // allow token to hydrate
-                if (active) await fetchProfile(currentSession.user.id, currentSession);
-            } else {
-                setLoading(false);
-            }
-        };
-
-        loadInitialSession();
-
-        // onAuthStateChange handles session events
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
-            if (!active) return;
-            addToLog('Event: ' + event);
-
-            setSession(nextSession);
-            hydrateFromSession(nextSession);
-            if (nextSession?.user?.id) {
-                await delay(50);
-                if (active) await fetchProfile(nextSession.user.id, nextSession);
-            } else {
-                setUserRole(null);
-                setUserProfile(null);
-                setStudentList([]);
-                setSelectedStudent(null);
-                setLoading(false);
-            }
-        });
-
-        return () => {
-            active = false;
-            subscription.unsubscribe();
-        };
-    }, []);
-    // Fetch lock to prevent race conditions
-    const fetchingRef = React.useRef(false);
-
-    const fetchProfile = async (userId, sessionOverride = null) => {
-        if (!supabase || !userId) return;
-
-        // Prevent concurrent fetches
-        if (fetchingRef.current) {
-            addToLog('Skip: Already fetching');
-            return;
-        }
-        fetchingRef.current = true;
 
         try {
-            addToLog('Fetch: ' + userId?.slice(0, 8));
+            // Use native fetch with timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-            // Use provided session if any; otherwise fall back to cached session state.
-            const activeSession = sessionOverride || session;
+            const headers = {
+                'Content-Type': 'application/json',
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${accessToken || supabaseKey}`
+            };
 
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', userId)
-                .single();
+            console.log('[Auth] Fetching via REST API...');
+            const response = await fetch(
+                `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=*`,
+                {
+                    headers,
+                    signal: controller.signal
+                }
+            );
+            clearTimeout(timeoutId);
 
-            console.log('[fetchProfile]', { userId, error, data });
+            if (!response.ok) {
+                console.error('[Auth] Profile fetch failed:', response.status);
+                return null;
+            }
 
-            if (error) {
-                if (error.code === 'PGRST116') {
-                    addToLog('Missing -> Creating');
-                    const { error: insertError } = await supabase
-                        .from('profiles')
-                        .insert([
-                            {
-                                id: userId,
-                                email: (await supabase.auth.getUser()).data.user?.email,
-                                full_name: (await supabase.auth.getUser()).data.user?.user_metadata?.full_name,
-                                role: 'student'
+            const data = await response.json();
+            console.log('[Auth] Profile response:', data);
+
+            if (data && data.length > 0) {
+                console.log('[Auth] Profile loaded:', data[0].role);
+                return data[0];
+            }
+
+            // Profile doesn't exist, create one
+            console.log('[Auth] No profile found, creating...');
+            const newProfile = {
+                id: userId,
+                role: 'student'
+            };
+
+            await fetch(`${supabaseUrl}/rest/v1/profiles`, {
+                method: 'POST',
+                headers: {
+                    ...headers,
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(newProfile)
+            });
+
+            return newProfile;
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                console.error('[Auth] Profile fetch timed out');
+            } else {
+                console.error('[Auth] Profile fetch error:', err.message);
+            }
+
+            // Try cached profile
+            try {
+                const cached = localStorage.getItem('lgs-tracker-profile');
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    if (parsed?.id === userId) {
+                        console.log('[Auth] Using cached profile');
+                        return parsed;
+                    }
+                }
+            } catch { }
+
+            return null;
+        }
+    }, []);
+
+    // Fetch student list for admin/teacher using direct fetch
+    const fetchStudentList = useCallback(async (accessToken) => {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) return;
+
+        console.log('[Data] Fetching student list');
+
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+            const response = await fetch(
+                `${supabaseUrl}/rest/v1/profiles?role=eq.student&select=*`,
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${accessToken || supabaseKey}`
+                    },
+                    signal: controller.signal
+                }
+            );
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('[Data] Student list loaded:', data.length);
+                setStudentList(data || []);
+            }
+        } catch (err) {
+            console.error('[Data] Student list fetch error:', err.message);
+        }
+    }, []);
+
+    // Initialize auth - runs once on mount
+    useEffect(() => {
+        if (!supabase) {
+            setLoading(false);
+            setAuthError('Supabase yapılandırması eksik');
+            return;
+        }
+
+        let mounted = true;
+
+        const initAuth = async () => {
+            console.log('[Auth] Initializing...');
+
+            try {
+                // Get current session with timeout
+                let timedOut = false;
+                const timeoutPromise = new Promise((resolve) =>
+                    setTimeout(() => {
+                        console.warn('[Auth] getSession timed out');
+                        timedOut = true;
+                        resolve({ data: { session: null }, error: null });
+                    }, 3000)
+                );
+
+                const sessionPromise = supabase.auth.getSession();
+                let { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+
+                // If timed out, try to restore from localStorage
+                if (timedOut && !session) {
+                    console.log('[Auth] Trying localStorage fallback...');
+                    try {
+                        const stored = localStorage.getItem('lgs-tracker-auth');
+                        if (stored) {
+                            const parsed = JSON.parse(stored);
+                            if (parsed?.access_token && parsed?.user) {
+                                console.log('[Auth] Using session from localStorage');
+                                session = parsed;
                             }
-                        ]);
-
-                    if (!insertError) {
-                        addToLog('Created as student');
-                        setUserRole('student');
-                        setUserProfile({ id: userId, role: 'student' });
-                        return;
-                    } else {
-                        addToLog('Create Err: ' + insertError.code);
+                        }
+                    } catch (e) {
+                        console.error('[Auth] localStorage parse error:', e);
                     }
                 }
 
-                addToLog('ProfileErr:' + (error.code || 'unknown'));
-                setLastError('Fetch Error: ' + error.message + ' Code: ' + error.code);
-                console.error('Profile fetch error:', error);
-                return;
-            }
-
-            if (data) {
-                addToLog('Role: ' + data.role);
-                setLastError(null);
-                setUserRole(data.role);
-                setUserProfile(data);
-                try {
-                    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(data));
-                } catch { /* ignore */ }
-
-                if (data.role === 'student') {
-                    setSelectedStudent(userId);
-                } else if (!studentList.length) {
-                    fetchStudentList();
-                }
-            } else {
-                addToLog('ProfileEmpty');
-                setLastError('Profil bulunamadı');
-            }
-
-        } catch (error) {
-            addToLog('ProfileEx:' + error.message);
-            setLastError(error.message);
-            console.error('Error fetching profile:', error);
-        } finally {
-            fetchingRef.current = false;
-        }
-    };
-
-    // Prefer session metadata immediately to avoid flash/nulls while DB fetch runs
-    const hydrateFromSession = (nextSession) => {
-        const metaRole = nextSession?.user?.user_metadata?.role;
-        const fullName = nextSession?.user?.user_metadata?.full_name;
-        if (metaRole) {
-            setUserRole(metaRole);
-            setUserProfile(prev => ({
-                ...(prev || {}),
-                id: nextSession.user.id,
-                email: nextSession.user.email,
-                full_name: prev?.full_name || fullName,
-                role: metaRole
-            }));
-            if (metaRole === 'student') {
-                setSelectedStudent(nextSession.user.id);
-            }
-        }
-
-        // Warm from cached profile if available
-        const cachedRaw = localStorage.getItem(PROFILE_CACHE_KEY);
-        if (cachedRaw) {
-            try {
-                const cached = JSON.parse(cachedRaw);
-                if (cached?.id === nextSession?.user?.id) {
-                    setUserProfile(cached);
-                    if (cached.role) setUserRole(cached.role);
-                    if (cached.role === 'student') setSelectedStudent(cached.id);
-                }
-            } catch { /* ignore */ }
-        }
-    };
-
-    const fetchStudentList = async () => {
-        if (!supabase) return;
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('role', 'student');
-
-        if (!error && data) {
-            setStudentList(data);
-            // Optionally select the first student or stay null
-            // setSelectedStudent(null); // Explicitly null to force selection or empty view
-        }
-    };
-
-    // Fetch Data on Load (re-run when selectedStudent changes)
-    useEffect(() => {
-        const fetchData = async () => {
-            // If no session, we are done loading (show login)
-            if (!session) {
-                setLoading(false);
-                return;
-            }
-
-            // Only fetch if a student is selected (or if we are student)
-            // Admins need to select a student first to see Data.
-            if (!selectedStudent) {
-                setExamHistory([]);
-                setDailyLogs([]);
-                setLoading(false);
-                return;
-            }
-
-            setLoading(true);
-
-            try {
-                if (!supabase) {
-                    setLoading(false);
+                if (error) {
+                    console.error('[Auth] getSession error:', error);
+                    if (mounted) {
+                        setAuthError(error.message);
+                        setLoading(false);
+                    }
                     return;
                 }
-                // Fetch Exams for SELECTED user
-                const { data: exams, error: examError } = await supabase
+
+                if (session?.user) {
+                    console.log('[Auth] Session found:', session.user.id);
+                    if (mounted) {
+                        setUser(session.user);
+                        const profile = await fetchProfile(session.user.id, session.access_token);
+                        if (profile && mounted) {
+                            setUserProfile(profile);
+                            setUserRole(profile.role);
+                            // Cache profile
+                            localStorage.setItem('lgs-tracker-profile', JSON.stringify(profile));
+                            if (profile.role === 'student') {
+                                setSelectedStudent(session.user.id);
+                            } else {
+                                await fetchStudentList(session.access_token);
+                            }
+                        }
+                    }
+                } else {
+                    console.log('[Auth] No session found');
+                }
+            } catch (err) {
+                console.error('[Auth] Init error:', err);
+                if (mounted) setAuthError(err.message);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        };
+
+        // Set up auth state listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('[Auth] State change:', event);
+
+            if (event === 'SIGNED_IN' && session?.user) {
+                if (mounted) {
+                    setUser(session.user);
+                    setLoading(true);
+                    const profile = await fetchProfile(session.user.id, session.access_token);
+                    if (profile && mounted) {
+                        setUserProfile(profile);
+                        setUserRole(profile.role);
+                        if (profile.role === 'student') {
+                            setSelectedStudent(session.user.id);
+                        } else {
+                            await fetchStudentList(session.access_token);
+                        }
+                    }
+                    setLoading(false);
+                }
+            } else if (event === 'SIGNED_OUT') {
+                if (mounted) {
+                    setUser(null);
+                    setUserProfile(null);
+                    setUserRole(null);
+                    setStudentList([]);
+                    setSelectedStudent(null);
+                    setExamHistory([]);
+                    setDailyLogs([]);
+                }
+            } else if (event === 'TOKEN_REFRESHED') {
+                console.log('[Auth] Token refreshed');
+            }
+        });
+
+        initAuth();
+
+        return () => {
+            mounted = false;
+            subscription.unsubscribe();
+        };
+    }, [fetchProfile, fetchStudentList]);
+
+    // Fetch exam and solution data when selected student changes
+    useEffect(() => {
+        if (!supabase || !selectedStudent) {
+            setExamHistory([]);
+            setDailyLogs([]);
+            return;
+        }
+
+        const fetchData = async () => {
+            console.log('[Data] Fetching data for student:', selectedStudent);
+
+            try {
+                const { data: exams } = await supabase
                     .from('exams')
                     .select('*')
-                    .eq('user_id', selectedStudent) // Important: Filter by selected student
+                    .eq('user_id', selectedStudent)
                     .order('date', { ascending: false });
 
-                if (examError) throw examError;
-
-                // Fetch Solutions for SELECTED user
-                const { data: solutions, error: solError } = await supabase
+                const { data: solutions } = await supabase
                     .from('solutions')
                     .select('*')
                     .eq('user_id', selectedStudent)
                     .order('date', { ascending: false });
 
-                if (solError) throw solError;
-
-                // Map DB structure to App structure
                 const formattedExams = (exams || []).map(e => ({
                     ...e,
                     totalScore: parseFloat(e.total_score),
                     totalNet: parseFloat(e.total_net),
-                    results: e.results // JSONB
+                    results: e.results
                 }));
 
                 setExamHistory(formattedExams);
                 setDailyLogs(solutions || []);
-
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                // Don't alert on simple RLS errors, just show empty
-                // alert('Veri çekilemedi.');
-            } finally {
-                setLoading(false);
+            } catch (err) {
+                console.error('[Data] Fetch error:', err);
             }
         };
 
         fetchData();
-    }, [selectedStudent, session]); // Run when selectedStudent changes
+    }, [selectedStudent]);
 
-    // Recalculate Stats whenever data changes
+    // Calculate stats when data changes
     useEffect(() => {
-        if (loading) return;
-
-        // Total Questions (from solutions + exams?) usually just solutions tracking
         const totalQ = dailyLogs.reduce((acc, curr) => acc + (parseInt(curr.count) || 0), 0);
-
-        // Exam Average
         const avgScore = examHistory.length > 0
             ? examHistory.reduce((acc, curr) => acc + curr.totalScore, 0) / examHistory.length
             : 0;
-
-        // Completion Rate
         const totalCorrect = dailyLogs.reduce((acc, curr) => acc + (parseInt(curr.correct) || 0), 0);
         const rate = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 0;
 
@@ -336,9 +352,9 @@ export const DataProvider = ({ children }) => {
             streakDays: new Set(dailyLogs.map(l => l.date)).size,
             completionRate: rate
         });
-    }, [dailyLogs, examHistory, loading]);
+    }, [dailyLogs, examHistory]);
 
-
+    // Add exam
     const addExam = async (examData) => {
         const processedResults = {};
         Object.keys(examData.results).forEach(subjectName => {
@@ -349,110 +365,109 @@ export const DataProvider = ({ children }) => {
 
         const { score, totalNet } = calculateLGS(processedResults);
 
-        // Optimistic Update
-        const tempId = Date.now();
         const newExam = {
-            id: tempId,
             name: examData.name,
             date: examData.date,
-            totalScore: parseFloat(score),
-            totalNet: parseFloat(totalNet),
-            results: processedResults
+            total_score: parseFloat(score),
+            total_net: parseFloat(totalNet),
+            results: processedResults,
+            user_id: selectedStudent || user?.id
         };
-        setExamHistory(prev => [newExam, ...prev]);
 
-        if (supabase) {
-            const { data, error } = await supabase.from('exams').insert([{
-                name: examData.name,
-                date: examData.date,
-                total_score: parseFloat(score),
-                total_net: parseFloat(totalNet),
-                results: processedResults,
-                user_id: selectedStudent || session?.user?.id
-            }]).select();
+        const { data, error } = await supabase.from('exams').insert([newExam]).select();
 
-            if (error) {
-                console.error('Error adding exam:', error);
-                // Revert optimistic update? For now just log.
-                alert('Sınav kaydedilemedi!');
-            } else {
-                // Update ID with real ID from DB
-                setExamHistory(prev => prev.map(e => e.id === tempId ? { ...e, id: data[0].id } : e));
-            }
-        }
-    };
-
-    const deleteExam = async (id) => {
-        // Optimistic Delete
-        const backup = [...examHistory];
-        setExamHistory(prev => prev.filter(exam => exam.id !== id));
-
-        if (supabase) {
-            const { error } = await supabase.from('exams').delete().eq('id', id);
-            if (error) {
-                console.error('Delete failed:', error);
-                alert('Silme işlemi başarısız oldu.');
-                setExamHistory(backup);
-            }
-        }
-    };
-
-    const addDailyLog = async (log) => {
-        // Optimistic Update
-        const tempId = Date.now();
-        setDailyLogs(prev => [{ ...log, id: tempId }, ...prev]);
-
-        if (supabase) {
-            const { data, error } = await supabase.from('solutions').insert([{
-                date: log.date,
-                subject: log.subject,
-                topic: log.topic,
-                count: parseInt(log.count),
-                correct: parseInt(log.correct || 0),
-                publisher: log.publisher,
-                user_id: selectedStudent || session?.user?.id
-            }]).select();
-
-            if (error) {
-                console.error('Error adding log:', error);
-                alert('Çözüm kaydedilemedi!');
-            } else {
-                setDailyLogs(prev => prev.map(l => l.id === tempId ? { ...l, id: data[0].id } : l));
-            }
-        }
-    };
-
-    // Expose a manual refresh hook for screens that need to sync after mutations
-    const refreshApp = async () => {
-        if (!supabase) return;
-        const { data: sessionData, error } = await supabase.auth.getSession();
         if (error) {
-            setLastError(error.message);
+            alert('Sınav kaydedilemedi: ' + error.message);
             return;
         }
 
-        const nextSession = sessionData?.session;
-        setSession(nextSession);
+        setExamHistory(prev => [{
+            ...data[0],
+            totalScore: parseFloat(score),
+            totalNet: parseFloat(totalNet)
+        }, ...prev]);
+    };
 
-        if (nextSession?.user?.id) {
-            await fetchProfile(nextSession.user.id);
-        } else {
-            setUserRole(null);
-            setUserProfile(null);
-            setStudentList([]);
-            setSelectedStudent(null);
+    // Delete exam
+    const deleteExam = async (id) => {
+        const { error } = await supabase.from('exams').delete().eq('id', id);
+        if (error) {
+            alert('Silme başarısız: ' + error.message);
+            return;
+        }
+        setExamHistory(prev => prev.filter(e => e.id !== id));
+    };
+
+    // Add daily log
+    const addDailyLog = async (log) => {
+        const newLog = {
+            date: log.date,
+            subject: log.subject,
+            topic: log.topic,
+            count: parseInt(log.count),
+            correct: parseInt(log.correct || 0),
+            publisher: log.publisher,
+            user_id: selectedStudent || user?.id
+        };
+
+        const { data, error } = await supabase.from('solutions').insert([newLog]).select();
+
+        if (error) {
+            alert('Çözüm kaydedilemedi: ' + error.message);
+            return;
+        }
+
+        setDailyLogs(prev => [data[0], ...prev]);
+    };
+
+    // Logout function
+    const logout = async () => {
+        if (supabase) {
+            await supabase.auth.signOut();
+        }
+    };
+
+    // Refresh app data
+    const refreshApp = async () => {
+        if (!user) return;
+        const profile = await fetchProfile(user.id);
+        if (profile) {
+            setUserProfile(profile);
+            setUserRole(profile.role);
+            if (profile.role !== 'student') {
+                await fetchStudentList();
+            }
         }
     };
 
     return (
         <DataContext.Provider value={{
-            session,
-            userRole,
+            // Auth
+            user,
             userProfile,
+            userRole,
+            loading,
+            authError,
+            logout,
+
+            // Student management
             studentList,
             selectedStudent,
             setSelectedStudent,
-            stats, examHistory, subjects, dailyLogs, addExam, deleteExam, addDailyLog, calculateLGS, debugHistory, loading, refreshApp, lastError
+
+            // Data
+            examHistory,
+            dailyLogs,
+            stats,
+            subjects,
+
+            // Actions
+            addExam,
+            deleteExam,
+            addDailyLog,
+            calculateLGS,
+            refreshApp,
+            fetchStudentList
         }}>
             {children}
         </DataContext.Provider>
