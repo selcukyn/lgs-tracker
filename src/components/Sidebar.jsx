@@ -46,7 +46,7 @@ export const Sidebar = () => {
             <div>
                 {/* Logo */}
                 <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{ width: '32px', height: '32px', background: 'var(--color-primary)', borderRadius: '8px' }}></div>
+                    <img src="/src/assets/logo.png" alt="LGS Tracker Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
                     <h1 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'white' }}>LGS Takip</h1>
                 </div>
 
