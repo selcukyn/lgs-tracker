@@ -1,11 +1,22 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
-import { Save, Calendar } from 'lucide-react';
+import { Save, Calendar, Trash2, Edit2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Modal } from '../components/Modal';
 
 export const DataEntry = () => {
-    const { dailyLogs, subjects, addDailyLog, loading, userRole, selectedStudent } = useData();
+    const { dailyLogs, subjects, addDailyLog, deleteDailyLog, updateDailyLog, loading, userRole, selectedStudent } = useData();
     const navigate = useNavigate();
+    const [editingId, setEditingId] = useState(null);
+    const [modal, setModal] = useState({ isOpen: false, type: 'success', title: '', message: '', onConfirm: null });
+    const [formData, setFormData] = useState({
+        date: new Date().toISOString().split('T')[0],
+        subject: '',
+        topic: '',
+        count: '',
+        correct: '',
+        publisher: ''
+    });
 
     // Guard: Require Student Selection for Admin/Teacher
     if (['admin', 'teacher'].includes(userRole) && !selectedStudent) {
@@ -26,21 +37,74 @@ export const DataEntry = () => {
             </div>
         );
     }
-    const [formData, setFormData] = useState({
-        date: new Date().toISOString().split('T')[0],
-        subject: '',
-        topic: '',
-        count: '',
-        correct: '',
-        publisher: ''
-    });
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        addDailyLog(formData);
-        alert('Çözüm kaydedildi!');
+
+        let success = false;
+        if (editingId) {
+            await updateDailyLog(editingId, formData);
+            setModal({
+                isOpen: true,
+                type: 'success',
+                title: 'Başarılı',
+                message: 'Kayıt başarıyla güncellendi.',
+                confirmText: 'Tamam'
+            });
+            setEditingId(null);
+        } else {
+            await addDailyLog(formData);
+            setModal({
+                isOpen: true,
+                type: 'success',
+                title: 'Başarılı',
+                message: 'Çözüm başarıyla kaydedildi!',
+                confirmText: 'Tamam'
+            });
+        }
+
         setFormData({
-            ...formData,
+            date: new Date().toISOString().split('T')[0],
+            subject: '',
+            topic: '',
+            count: '',
+            correct: '',
+            publisher: ''
+        });
+    };
+
+    const handleEdit = (log) => {
+        setEditingId(log.id);
+        setFormData({
+            date: log.date,
+            subject: log.subject,
+            topic: log.topic,
+            count: log.count,
+            correct: log.correct,
+            publisher: log.publisher || ''
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleDelete = (id) => {
+        setModal({
+            isOpen: true,
+            type: 'confirm',
+            title: 'Silme Onayı',
+            message: 'Bu çözümü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.',
+            confirmText: 'Sil',
+            cancelText: 'İptal',
+            onConfirm: async () => {
+                await deleteDailyLog(id);
+                setModal(prev => ({ ...prev, isOpen: false }));
+            }
+        });
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setFormData({
+            date: new Date().toISOString().split('T')[0],
             subject: '',
             topic: '',
             count: '',
@@ -65,10 +129,10 @@ export const DataEntry = () => {
     });
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
 
             {/* Input Form Section */}
-            <div style={{ maxWidth: '600px' }}>
+            <div style={{ maxWidth: '600px', width: '100%', margin: '0 auto' }}>
                 <div style={{ marginBottom: '2rem' }}>
                     <h2 style={{ fontSize: '1.875rem', fontWeight: '700' }}>Çözüm Girişi</h2>
                     <p style={{ color: 'var(--text-muted)' }}>Günlük çözdüğün soruları kaydet.</p>
@@ -161,17 +225,88 @@ export const DataEntry = () => {
                         </div>
                     </div>
 
-                    <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>
-                        <Save size={20} style={{ marginRight: '0.5rem' }} />
-                        Kaydet
-                    </button>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem', flex: 1 }}>
+                            <Save size={20} style={{ marginRight: '0.5rem' }} />
+                            {editingId ? 'Güncelle' : 'Kaydet'}
+                        </button>
+                        {editingId && (
+                            <button
+                                type="button"
+                                onClick={cancelEdit}
+                                className="btn"
+                                style={{ marginTop: '1rem', background: 'var(--surface)', border: '1px solid var(--border-color)', color: 'white' }}
+                            >
+                                <X size={20} style={{ marginRight: '0.5rem' }} />
+                                İptal
+                            </button>
+                        )}
+                    </div>
                 </form>
             </div>
 
-            {/* Matrix History View */}
+            {/* Current Data List (Editable) */}
             <div className="glass-panel" style={{ padding: '1.5rem', overflowX: 'auto' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Calendar size={20} /> Çözüm Geçmişi (Matris)
+                    <Calendar size={20} /> Son Çözülenler
+                </h3>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                    <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                            <th style={{ padding: '1rem' }}>Tarih</th>
+                            <th style={{ padding: '1rem' }}>Ders</th>
+                            <th style={{ padding: '1rem' }}>Konu</th>
+                            <th style={{ padding: '1rem' }}>Yayınevi</th>
+                            <th style={{ padding: '1rem' }}>Soru/Doğru</th>
+                            <th style={{ padding: '1rem', textAlign: 'right' }}>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {[...dailyLogs].sort((a, b) => new Date(b.date) - new Date(a.date)).map((log) => (
+                            <tr key={log.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                <td style={{ padding: '1rem' }}>{log.date}</td>
+                                <td style={{ padding: '1rem' }}>
+                                    <span style={{
+                                        color: subjects.find(s => s.name === log.subject)?.color || 'white',
+                                        fontWeight: '500'
+                                    }}>
+                                        {log.subject}
+                                    </span>
+                                </td>
+                                <td style={{ padding: '1rem' }}>{log.topic || '-'}</td>
+                                <td style={{ padding: '1rem' }}>{log.publisher || '-'}</td>
+                                <td style={{ padding: '1rem' }}>
+                                    {log.count} / <span style={{ color: '#4ade80' }}>{log.correct}</span>
+                                </td>
+                                <td style={{ padding: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                    <button
+                                        onClick={() => handleEdit(log)}
+                                        style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                                        title="Düzenle"
+                                    >
+                                        <Edit2 size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(log.id)}
+                                        style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                                        title="Sil"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                        {dailyLogs.length === 0 && (
+                            <tr><td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Henüz veri bulunmuyor.</td></tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Matrix History View (Summary) */}
+            <div className="glass-panel" style={{ padding: '1.5rem', overflowX: 'auto' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Calendar size={20} /> Özet Tablo (Matris)
                 </h3>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '0.875rem' }}>
                     <thead>
@@ -215,6 +350,17 @@ export const DataEntry = () => {
                 </table>
             </div>
 
-        </div>
+            {/* Modal */}
+            <Modal
+                isOpen={modal.isOpen}
+                onClose={() => setModal({ ...modal, isOpen: false })}
+                onConfirm={modal.onConfirm}
+                title={modal.title}
+                message={modal.message}
+                type={modal.type}
+                confirmText={modal.confirmText}
+                cancelText={modal.cancelText}
+            />
+        </div >
     );
 };

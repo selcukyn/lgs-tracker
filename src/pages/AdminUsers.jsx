@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { useData } from '../context/DataContext';
 import { Trash2, Edit2, Search, UserPlus, RefreshCw } from 'lucide-react';
+import { Modal } from '../components/Modal';
 
 export const AdminUsers = () => {
     const { userRole, loading: contextLoading, refreshApp } = useData();
@@ -14,6 +15,7 @@ export const AdminUsers = () => {
     // Add User Modal State
     const [showAddModal, setShowAddModal] = useState(false);
     const [newUser, setNewUser] = useState({ email: '', password: '', full_name: '', role: 'student' });
+    const [modal, setModal] = useState({ isOpen: false, type: 'info', title: '', message: '', onConfirm: null });
 
     // Fetch users
     const fetchUsers = async () => {
@@ -28,7 +30,7 @@ export const AdminUsers = () => {
 
             if (error) {
                 console.error('[AdminUsers] Error:', error);
-                alert('Kullanıcı listesi çekilemedi: ' + error.message);
+                setModal({ isOpen: true, type: 'danger', title: 'Hata', message: 'Kullanıcı listesi çekilemedi: ' + error.message, confirmText: 'Tamam' });
             } else {
                 console.log('[AdminUsers] Loaded', data?.length, 'users');
                 setUsers(data || []);
@@ -70,7 +72,7 @@ export const AdminUsers = () => {
         e.preventDefault();
 
         if (!newUser.full_name?.trim()) {
-            alert('Lütfen Ad Soyad giriniz.');
+            setModal({ isOpen: true, type: 'danger', title: 'Eksik Bilgi', message: 'Lütfen Ad Soyad giriniz.', confirmText: 'Tamam' });
             return;
         }
 
@@ -116,12 +118,12 @@ export const AdminUsers = () => {
                 });
             }
 
-            alert('Kullanıcı başarıyla oluşturuldu!');
+            setModal({ isOpen: true, type: 'success', title: 'Başarılı', message: 'Kullanıcı başarıyla oluşturuldu!', confirmText: 'Tamam' });
             setShowAddModal(false);
             setNewUser({ email: '', password: '', full_name: '', role: 'student' });
             fetchUsers();
         } catch (error) {
-            alert('Hata: ' + error.message);
+            setModal({ isOpen: true, type: 'danger', title: 'Hata', message: 'Hata: ' + error.message, confirmText: 'Tamam' });
         }
     };
 
@@ -151,7 +153,7 @@ export const AdminUsers = () => {
             .eq('id', id);
 
         if (error) {
-            alert('Güncelleme başarısız: ' + error.message);
+            setModal({ isOpen: true, type: 'danger', title: 'Hata', message: 'Güncelleme başarısız: ' + error.message, confirmText: 'Tamam' });
         } else {
             setUsers(prev => prev.map(u => u.id === id ? { ...u, ...formData } : u));
             setEditingUser(null);
@@ -163,20 +165,33 @@ export const AdminUsers = () => {
     const handleDelete = async (id) => {
         const { data: { user } } = await supabase.auth.getUser();
         if (id === user?.id) {
-            alert('Kendinizi silemezsiniz!');
+            setModal({ isOpen: true, type: 'danger', title: 'Hata', message: 'Kendinizi silemezsiniz!', confirmText: 'Tamam' });
             return;
         }
 
-        if (!window.confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) return;
+        setModal({
+            isOpen: true,
+            type: 'confirm',
+            title: 'Kullanıcı Silme',
+            message: 'Bu kullanıcıyı silmek istediğinize emin misiniz?',
+            confirmText: 'Sil',
+            cancelText: 'İptal',
+            onConfirm: async () => {
+                const { error } = await supabase.from('profiles').delete().eq('id', id);
 
-        const { error } = await supabase.from('profiles').delete().eq('id', id);
-
-        if (error) {
-            alert('Silme başarısız: ' + error.message);
-        } else {
-            setUsers(prev => prev.filter(u => u.id !== id));
-            alert('Kullanıcı silindi.');
-        }
+                if (error) {
+                    setModal({ isOpen: true, type: 'danger', title: 'Hata', message: 'Silme başarısız: ' + error.message, confirmText: 'Tamam' });
+                } else {
+                    setUsers(prev => prev.filter(u => u.id !== id));
+                    setModal(prev => ({ ...prev, isOpen: false })); // Close confirm modal first
+                    // Optionally show success, but standard is just removing it. 
+                    // Let's show a quick success or just let it vanish. The user asked for popups.
+                    setTimeout(() => {
+                        setModal({ isOpen: true, type: 'success', title: 'Başarılı', message: 'Kullanıcı silindi.', confirmText: 'Tamam' });
+                    }, 100);
+                }
+            }
+        });
     };
 
     const filteredUsers = users.filter(u =>
@@ -375,6 +390,17 @@ export const AdminUsers = () => {
                     </table>
                 )}
             </div>
+            {/* Modal */}
+            <Modal
+                isOpen={modal.isOpen}
+                onClose={() => setModal({ ...modal, isOpen: false })}
+                onConfirm={modal.onConfirm}
+                title={modal.title}
+                message={modal.message}
+                type={modal.type}
+                confirmText={modal.confirmText}
+                cancelText={modal.cancelText}
+            />
         </div>
     );
 };

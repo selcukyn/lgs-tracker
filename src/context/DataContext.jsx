@@ -420,6 +420,39 @@ export const DataProvider = ({ children }) => {
         setDailyLogs(prev => [data[0], ...prev]);
     };
 
+    // Delete daily log
+    const deleteDailyLog = async (id) => {
+        const { error } = await supabase.from('solutions').delete().eq('id', id);
+        if (error) {
+            alert('Silme başarısız: ' + error.message);
+            return;
+        }
+        setDailyLogs(prev => prev.filter(l => l.id !== id));
+    };
+
+    // Update daily log
+    const updateDailyLog = async (id, updatedLog) => {
+        const { data, error } = await supabase
+            .from('solutions')
+            .update({
+                date: updatedLog.date,
+                subject: updatedLog.subject,
+                topic: updatedLog.topic,
+                count: parseInt(updatedLog.count),
+                correct: parseInt(updatedLog.correct || 0),
+                publisher: updatedLog.publisher
+            })
+            .eq('id', id)
+            .select();
+
+        if (error) {
+            alert('Güncelleme başarısız: ' + error.message);
+            return;
+        }
+
+        setDailyLogs(prev => prev.map(l => l.id === id ? data[0] : l));
+    };
+
     // Logout function
     const logout = async () => {
         if (supabase) {
@@ -465,6 +498,8 @@ export const DataProvider = ({ children }) => {
             addExam,
             deleteExam,
             addDailyLog,
+            deleteDailyLog,
+            updateDailyLog,
             calculateLGS,
             refreshApp,
             fetchStudentList

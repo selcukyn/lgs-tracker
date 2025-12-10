@@ -2,35 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { Plus, Award, Trophy, AlertCircle, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Modal } from '../components/Modal';
 
 export const Exams = () => {
     const { examHistory, subjects, addExam, deleteExam, calculateLGS, userRole, selectedStudent } = useData();
     const navigate = useNavigate();
     const [showForm, setShowForm] = useState(false);
-
-    // Best/Worst Calculation
-    const maxScore = Math.max(...examHistory.map(e => e.totalScore));
-    const minScore = Math.min(...examHistory.map(e => e.totalScore));
-
-    // Guard: Require Student Selection for Admin/Teacher
-    if (['admin', 'teacher'].includes(userRole) && !selectedStudent) {
-        return (
-            <div style={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-muted)',
-                gap: '1rem'
-            }}>
-                <div style={{ padding: '2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', textAlign: 'center' }}>
-                    <h3 style={{ color: 'white', marginBottom: '0.5rem' }}>Öğrenci Seçilmedi</h3>
-                    <p>Deneme sonuçlarını görmek veya eklemek için lütfen sol menüden bir öğrenci seçiniz.</p>
-                </div>
-            </div>
-        );
-    }
+    const [modal, setModal] = useState({ isOpen: false, type: 'info', title: '', message: '', onConfirm: null });
 
     // Form State
     const [formData, setFormData] = useState({
@@ -63,6 +41,30 @@ export const Exams = () => {
         setPreviewScore(calculateLGS(tempResults));
     }, [formData.results]);
 
+    // Best/Worst Calculation
+    const maxScore = Math.max(...examHistory.map(e => e.totalScore));
+    const minScore = Math.min(...examHistory.map(e => e.totalScore));
+
+    // Guard: Require Student Selection for Admin/Teacher
+    if (['admin', 'teacher'].includes(userRole) && !selectedStudent) {
+        return (
+            <div style={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-muted)',
+                gap: '1rem'
+            }}>
+                <div style={{ padding: '2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', textAlign: 'center' }}>
+                    <h3 style={{ color: 'white', marginBottom: '0.5rem' }}>Öğrenci Seçilmedi</h3>
+                    <p>Deneme sonuçlarını görmek veya eklemek için lütfen sol menüden bir öğrenci seçiniz.</p>
+                </div>
+            </div>
+        );
+    }
+
     const handleInputChange = (subject, field, value) => {
         const val = parseInt(value) || 0;
         setFormData(prev => ({
@@ -77,7 +79,7 @@ export const Exams = () => {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         // Validation: Check Max Questions
@@ -86,13 +88,28 @@ export const Exams = () => {
             const total = (r.correct || 0) + (r.incorrect || 0) + (r.empty || 0);
 
             if (total !== sub.maxQuestions) {
-                alert(`${sub.name} dersi için toplam soru sayısı ${sub.maxQuestions} olmalıdır. (Şu an: ${total}). Lütfen boş bıraktığınız soruları da giriniz.`);
+                setModal({
+                    isOpen: true,
+                    type: 'danger',
+                    title: 'Hatalı Giriş',
+                    message: `${sub.name} dersi için toplam soru sayısı ${sub.maxQuestions} olmalıdır. (Şu an: ${total}). Lütfen boş bıraktığınız soruları da giriniz.`,
+                    confirmText: 'Tamam'
+                });
                 return;
             }
         }
 
-        addExam(formData);
+        await addExam(formData);
+
         setShowForm(false);
+        setModal({
+            isOpen: true,
+            type: 'success',
+            title: 'Başarılı',
+            message: 'Deneme sınavı başarıyla eklendi!',
+            confirmText: 'Tamam'
+        });
+
         // Reset form
         const initialResults = {};
         subjects.forEach(sub => {
@@ -104,9 +121,15 @@ export const Exams = () => {
     // Custom confirm for react environment
     const handleDeleteConfirm = (e, id) => {
         e.stopPropagation();
-        if (window.confirm('Bu denemeyi silmek istediğinize emin misiniz?')) {
-            deleteExam(id);
-        }
+        setModal({
+            isOpen: true,
+            type: 'confirm',
+            title: 'Silme Onayı',
+            message: 'Bu denemeyi silmek istediğinize emin misiniz?',
+            confirmText: 'Sil',
+            cancelText: 'İptal',
+            onConfirm: () => deleteExam(id)
+        });
     };
 
 
@@ -265,6 +288,17 @@ export const Exams = () => {
                     </tbody>
                 </table>
             </div>
+            {/* Modal */}
+            <Modal
+                isOpen={modal.isOpen}
+                onClose={() => setModal({ ...modal, isOpen: false })}
+                onConfirm={modal.onConfirm}
+                title={modal.title}
+                message={modal.message}
+                type={modal.type}
+                confirmText={modal.confirmText}
+                cancelText={modal.cancelText}
+            />
         </div>
     );
 };
