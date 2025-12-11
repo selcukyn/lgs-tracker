@@ -10,6 +10,20 @@ import { Login } from './pages/Login';
 import { MobileAuthConfirm } from './pages/MobileAuthConfirm';
 import { AdminUsers } from './pages/AdminUsers'; // Import
 
+// Helper component for Login redirection
+const LoginRoute = () => {
+  const { user } = useData();
+  const location = window.location;
+  const params = new URLSearchParams(location.search);
+  const redirectTo = params.get('redirectTo');
+
+  if (user) {
+    return <Navigate to={redirectTo ? decodeURIComponent(redirectTo) : "/"} replace />;
+  }
+
+  return <Login />;
+};
+
 // Wrapper to use context inside Router
 const AppRoutes = () => {
   // We need to access context, but context is provided by DataProvider which is parent of Browser Router in main App?
@@ -33,7 +47,7 @@ const AuthGuard = () => {
 
   return (
     <Routes>
-      <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
+      <Route path="/login" element={<LoginRoute />} />
       <Route path="/qr-auth" element={<MobileAuthConfirm />} />
 
       {/* Protected Routes */}
