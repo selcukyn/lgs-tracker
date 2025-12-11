@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Layout } from './layouts/Layout';
 import { DataProvider, useData } from './context/DataContext';
 import { Dashboard } from './pages/Dashboard';
