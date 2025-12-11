@@ -13,12 +13,15 @@ import { AdminUsers } from './pages/AdminUsers'; // Import
 // Helper component for Login redirection
 const LoginRoute = () => {
   const { user } = useData();
-  const location = window.location;
+  const location = useLocation();
   const params = new URLSearchParams(location.search);
   const redirectTo = params.get('redirectTo');
 
   if (user) {
-    return <Navigate to={redirectTo ? decodeURIComponent(redirectTo) : "/"} replace />;
+    // If user is logged in, redirect to the target page or home
+    // Clean the URL if it was encoded
+    const target = redirectTo ? decodeURIComponent(redirectTo) : "/";
+    return <Navigate to={target} replace />;
   }
 
   return <Login />;

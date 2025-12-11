@@ -72,11 +72,10 @@ export const Login = () => {
 
         if (error) {
             alert(error.message);
-        } else {
-            const params = new URLSearchParams(location.search);
-            const redirectTo = params.get('redirectTo');
-            navigate(redirectTo ? decodeURIComponent(redirectTo) : '/');
         }
+
+        // No need to navigate manually, LoginRoute wrapper in App.jsx will handle it 
+        // when 'user' state changes.
         setLoading(false);
     };
 
@@ -147,7 +146,7 @@ export const Login = () => {
                         </div>
                     </div>
                 ) : (
-                    <form style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.5s ease' }}>
+                    <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.5s ease' }}>
                         <div>
                             <label htmlFor="login-email" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>E-posta</label>
                             <input
@@ -177,7 +176,7 @@ export const Login = () => {
 
                         <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                             <button
-                                onClick={handleLogin}
+                                type="submit"
                                 disabled={loading}
                                 className="btn btn-primary"
                                 style={{ flex: 1, justifyContent: 'center' }}
@@ -185,6 +184,7 @@ export const Login = () => {
                                 {loading ? '...' : 'Giriş Yap'}
                             </button>
                             <button
+                                type="button"
                                 onClick={handleSignUp}
                                 disabled={loading}
                                 className="btn"
