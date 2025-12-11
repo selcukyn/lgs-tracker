@@ -7,6 +7,7 @@ import { DataEntry } from './pages/DataEntry';
 import { Exams } from './pages/Exams';
 import { ExamDetail } from './pages/ExamDetail';
 import { Login } from './pages/Login';
+import { MobileAuthConfirm } from './pages/MobileAuthConfirm';
 import { AdminUsers } from './pages/AdminUsers'; // Import
 
 // Wrapper to use context inside Router
@@ -33,6 +34,7 @@ const AuthGuard = () => {
   return (
     <Routes>
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
+      <Route path="/qr-auth" element={<MobileAuthConfirm />} />
 
       {/* Protected Routes */}
       <Route path="/" element={user ? <Layout /> : <Navigate to="/login" />}>
