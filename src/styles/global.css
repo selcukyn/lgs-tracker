@@ -2,28 +2,36 @@
 
 :root {
   /* Brand Colors */
-  --color-primary: #6366f1; /* Indigo 500 */
+  --color-primary: #6366f1;
+  /* Indigo 500 */
   --color-primary-dark: #4f46e5;
-  --color-secondary: #ec4899; /* Pink 500 */
-  --color-accent: #8b5cf6; /* Violet 500 */
-  
+  --color-secondary: #ec4899;
+  /* Pink 500 */
+  --color-accent: #8b5cf6;
+  /* Violet 500 */
+
   /* Backgrounds */
-  --bg-app: #0f172a; /* Slate 900 */
-  --bg-sidebar: #1e293b; /* Slate 800 */
-  --bg-card: rgba(30, 41, 59, 0.7); /* Glassy Slate 800 */
-  
+  --bg-app: #0f172a;
+  /* Slate 900 */
+  --bg-sidebar: #1e293b;
+  /* Slate 800 */
+  --bg-card: rgba(30, 41, 59, 0.7);
+  /* Glassy Slate 800 */
+
   /* Text */
-  --text-main: #f8fafc; /* Slate 50 */
-  --text-muted: #94a3b8; /* Slate 400 */
-  
+  --text-main: #f8fafc;
+  /* Slate 50 */
+  --text-muted: #94a3b8;
+  /* Slate 400 */
+
   /* Borders */
   --border-color: rgba(148, 163, 184, 0.1);
-  
+
   /* Spacing */
   --radius-lg: 1rem;
   --radius-md: 0.75rem;
   --radius-sm: 0.5rem;
-  
+
   /* Effects */
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --glass-blur: blur(12px);
@@ -74,6 +82,7 @@ a {
   transition: all 0.2s ease;
   border: none;
   outline: none;
+  white-space: nowrap;
 }
 
 .btn-primary {
@@ -105,6 +114,64 @@ a {
   gap: 1.5rem;
 }
 
+/* Forms & Tables */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.input-field {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: white;
+  transition: all 0.2s;
+}
+
+.input-field:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+.data-table th,
+.data-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.data-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* Exam Subject Roq */
+.exam-subject-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  align-items: center;
+}
+
 @media (min-width: 640px) {
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -115,13 +182,29 @@ a {
   .kpi-grid {
     grid-template-columns: repeat(4, 1fr);
   }
-  
+
   .content-grid {
     grid-template-columns: 2fr 1fr;
+  }
+
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .exam-subject-row {
+    grid-template-columns: minmax(150px, 1fr) 1fr 1fr 1fr 1fr;
+    padding: 0.75rem;
   }
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

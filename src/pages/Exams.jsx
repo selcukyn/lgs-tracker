@@ -152,7 +152,7 @@ export const Exams = () => {
             {showForm && (
                 <div className="glass-panel" style={{ padding: '2rem', animation: 'fadeIn 0.3s ease' }}>
                     <form onSubmit={handleSubmit}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+                        <div className="form-grid" style={{ marginBottom: '2rem' }}>
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Yayınevi / Deneme Adı</label>
                                 <input
@@ -161,7 +161,7 @@ export const Exams = () => {
                                     placeholder="Örn: Özdebir Yayınları Türkiye Geneli 1"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-app)', color: 'white', border: '1px solid var(--border-color)' }}
+                                    className="input-field"
                                 />
                             </div>
                             <div>
@@ -173,29 +173,29 @@ export const Exams = () => {
                                     type="date"
                                     value={formData.date}
                                     onChange={e => setFormData({ ...formData, date: e.target.value })}
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-app)', color: 'white', border: '1px solid var(--border-color)' }}
+                                    className="input-field"
                                 />
                             </div>
                         </div>
 
                         <div style={{ display: 'grid', gap: '1rem' }}>
                             {subjects.map(sub => (
-                                <div key={sub.name} style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 1fr) 1fr 1fr 1fr 1fr', alignItems: 'center', gap: '1rem', padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                <div key={sub.name} className="exam-subject-row">
                                     <span style={{ fontWeight: 500, color: sub.color }}>{sub.name} <span style={{ fontSize: '0.75rem', opacity: 0.7, display: 'block' }}>(Max: {sub.maxQuestions})</span></span>
                                     <input type="number" min="0" placeholder="Doğru"
                                         value={formData.results[sub.name]?.correct || ''}
                                         onChange={e => handleInputChange(sub.name, 'correct', e.target.value)}
-                                        style={{ padding: '0.5rem', background: 'transparent', border: '1px solid var(--border-color)', color: 'white', borderRadius: '4px' }}
+                                        className="input-field"
                                     />
                                     <input type="number" min="0" placeholder="Yanlış"
                                         value={formData.results[sub.name]?.incorrect || ''}
                                         onChange={e => handleInputChange(sub.name, 'incorrect', e.target.value)}
-                                        style={{ padding: '0.5rem', background: 'transparent', border: '1px solid var(--border-color)', color: 'white', borderRadius: '4px' }}
+                                        className="input-field"
                                     />
                                     <input type="number" min="0" placeholder="Boş"
                                         value={formData.results[sub.name]?.empty || ''}
                                         onChange={e => handleInputChange(sub.name, 'empty', e.target.value)}
-                                        style={{ padding: '0.5rem', background: 'transparent', border: '1px solid var(--border-color)', color: 'white', borderRadius: '4px' }}
+                                        className="input-field"
                                     />
                                     <span style={{ fontWeight: 'bold', textAlign: 'center' }}>
                                         {((formData.results[sub.name]?.correct || 0) - ((formData.results[sub.name]?.incorrect || 0) / 3)).toFixed(2)} Net
@@ -224,69 +224,71 @@ export const Exams = () => {
             )}
 
             {/* Exam List */}
-            <div className="glass-panel" style={{ overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                            <th style={{ padding: '1rem' }}>Deneme Adı</th>
-                            <th style={{ padding: '1rem' }}>Tarih</th>
-                            <th style={{ padding: '1rem' }}>Toplam Net</th>
-                            <th style={{ padding: '1rem' }}>LGS Puanı</th>
-                            <th style={{ padding: '1rem' }}>Durum</th>
-                            <th style={{ padding: '1rem' }}>İşlem</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {examHistory.map((exam) => (
-                            <tr
-                                key={exam.id}
-                                onClick={() => navigate(`/exams/${exam.id}`)}
-                                style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer', transition: 'background 0.2s' }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                            >
-                                <td style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    <Award size={18} color="var(--color-primary)" />
-                                    <span style={{ fontWeight: 500 }}>{exam.name}</span>
-                                </td>
-                                <td style={{ padding: '1rem', color: 'var(--text-muted)' }}>{exam.date}</td>
-                                <td style={{ padding: '1rem', fontWeight: '500' }}>{exam.totalNet.toFixed(2)}</td>
-                                <td style={{ padding: '1rem' }}>
-                                    <span style={{
-                                        padding: '0.25rem 0.75rem',
-                                        borderRadius: '99px',
-                                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                        fontWeight: '700',
-                                        color: 'white'
-                                    }}>
-                                        {exam.totalScore.toFixed(3)}
-                                    </span>
-                                </td>
-                                <td style={{ padding: '1rem' }}>
-                                    {exam.totalScore === maxScore && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#10b981', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                            <Trophy size={14} /> EN İYİ
-                                        </div>
-                                    )}
-                                    {exam.totalScore === minScore && examHistory.length > 1 && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                            <AlertCircle size={14} /> EN DÜŞÜK
-                                        </div>
-                                    )}
-                                </td>
-                                <td style={{ padding: '1rem' }}>
-                                    <button
-                                        onClick={(e) => handleDeleteConfirm(e, exam.id)}
-                                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', opacity: 0.7 }}
-                                        title="Sil"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </td>
+            <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                <div className="table-container">
+                    <table className="data-table">
+                        <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                                <th style={{ padding: '1rem' }}>Deneme Adı</th>
+                                <th style={{ padding: '1rem' }}>Tarih</th>
+                                <th style={{ padding: '1rem' }}>Toplam Net</th>
+                                <th style={{ padding: '1rem' }}>LGS Puanı</th>
+                                <th style={{ padding: '1rem' }}>Durum</th>
+                                <th style={{ padding: '1rem' }}>İşlem</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {examHistory.map((exam) => (
+                                <tr
+                                    key={exam.id}
+                                    onClick={() => navigate(`/exams/${exam.id}`)}
+                                    style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer', transition: 'background 0.2s' }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                    <td style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <Award size={18} color="var(--color-primary)" />
+                                        <span style={{ fontWeight: 500 }}>{exam.name}</span>
+                                    </td>
+                                    <td style={{ padding: '1rem', color: 'var(--text-muted)' }}>{exam.date}</td>
+                                    <td style={{ padding: '1rem', fontWeight: '500' }}>{exam.totalNet.toFixed(2)}</td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <span style={{
+                                            padding: '0.25rem 0.75rem',
+                                            borderRadius: '99px',
+                                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                            fontWeight: '700',
+                                            color: 'white'
+                                        }}>
+                                            {exam.totalScore.toFixed(3)}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '1rem' }}>
+                                        {exam.totalScore === maxScore && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#10b981', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                <Trophy size={14} /> EN İYİ
+                                            </div>
+                                        )}
+                                        {exam.totalScore === minScore && examHistory.length > 1 && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                <AlertCircle size={14} /> EN DÜŞÜK
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <button
+                                            onClick={(e) => handleDeleteConfirm(e, exam.id)}
+                                            style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', opacity: 0.7 }}
+                                            title="Sil"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
             {/* Modal */}
             <Modal

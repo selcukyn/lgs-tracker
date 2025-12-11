@@ -294,7 +294,7 @@ export const AdminUsers = () => {
             )}
 
             {/* Users Table */}
-            <div className="glass-panel" style={{ overflow: 'hidden' }}>
+            <div className="glass-panel" style={{ padding: '1rem' }}>
                 {loading ? (
                     <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                         Yükleniyor...
@@ -304,90 +304,92 @@ export const AdminUsers = () => {
                         Kullanıcı bulunamadı.
                     </div>
                 ) : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                                <th style={{ padding: '1rem' }}>E-Posta</th>
-                                <th style={{ padding: '1rem' }}>Ad Soyad</th>
-                                <th style={{ padding: '1rem' }}>Rol</th>
-                                <th style={{ padding: '1rem' }}>Sınıf</th>
-                                <th style={{ padding: '1rem' }}>İşlem</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredUsers.map(user => (
-                                <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                    <td style={{ padding: '1rem', color: 'var(--text-muted)' }}>
-                                        {user.email || '-'}
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        {editingUser === user.id ? (
-                                            <input
-                                                value={formData.full_name}
-                                                onChange={e => setFormData({ ...formData, full_name: e.target.value })}
-                                                style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', color: 'white', padding: '0.25rem' }}
-                                            />
-                                        ) : (
-                                            <div style={{ fontWeight: 500 }}>{user.full_name || 'İsimsiz'}</div>
-                                        )}
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        {editingUser === user.id ? (
-                                            <select
-                                                value={formData.role}
-                                                onChange={e => setFormData({ ...formData, role: e.target.value })}
-                                                style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', color: 'white', padding: '0.25rem' }}
-                                            >
-                                                <option value="student">Öğrenci</option>
-                                                <option value="teacher">Öğretmen</option>
-                                                <option value="admin">Yönetici</option>
-                                            </select>
-                                        ) : (
-                                            <span style={{
-                                                padding: '0.25rem 0.75rem',
-                                                borderRadius: '99px',
-                                                fontSize: '0.75rem',
-                                                fontWeight: 'bold',
-                                                backgroundColor: user.role === 'admin' ? 'rgba(239, 68, 68, 0.2)' : user.role === 'teacher' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(59, 130, 246, 0.2)',
-                                                color: user.role === 'admin' ? '#fca5a5' : user.role === 'teacher' ? '#fcd34d' : '#93c5fd'
-                                            }}>
-                                                {user.role === 'student' ? 'Öğrenci' : user.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        {editingUser === user.id ? (
-                                            <input
-                                                value={formData.class_group}
-                                                onChange={e => setFormData({ ...formData, class_group: e.target.value })}
-                                                placeholder="Örn: 8-A"
-                                                style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', color: 'white', padding: '0.25rem', width: '80px' }}
-                                            />
-                                        ) : (
-                                            <span style={{ color: 'var(--text-muted)' }}>{user.class_group || '-'}</span>
-                                        )}
-                                    </td>
-                                    <td style={{ padding: '1rem', display: 'flex', gap: '0.5rem' }}>
-                                        {editingUser === user.id ? (
-                                            <>
-                                                <button onClick={() => handleSave(user.id)} style={{ padding: '0.25rem 0.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Kaydet</button>
-                                                <button onClick={handleCancelEdit} style={{ padding: '0.25rem 0.5rem', background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}>İptal</button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <button onClick={() => handleEditClick(user)} style={{ background: 'transparent', border: 'none', color: 'var(--color-primary)', cursor: 'pointer' }} title="Düzenle">
-                                                    <Edit2 size={18} />
-                                                </button>
-                                                <button onClick={() => handleDelete(user.id)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Sil">
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </>
-                                        )}
-                                    </td>
+                    <div className="table-container">
+                        <table className="data-table">
+                            <thead>
+                                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                                    <th style={{ padding: '1rem' }}>E-Posta</th>
+                                    <th style={{ padding: '1rem' }}>Ad Soyad</th>
+                                    <th style={{ padding: '1rem' }}>Rol</th>
+                                    <th style={{ padding: '1rem' }}>Sınıf</th>
+                                    <th style={{ padding: '1rem' }}>İşlem</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {filteredUsers.map(user => (
+                                    <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                        <td style={{ padding: '1rem', color: 'var(--text-muted)' }}>
+                                            {user.email || '-'}
+                                        </td>
+                                        <td style={{ padding: '1rem' }}>
+                                            {editingUser === user.id ? (
+                                                <input
+                                                    value={formData.full_name}
+                                                    onChange={e => setFormData({ ...formData, full_name: e.target.value })}
+                                                    style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', color: 'white', padding: '0.25rem' }}
+                                                />
+                                            ) : (
+                                                <div style={{ fontWeight: 500 }}>{user.full_name || 'İsimsiz'}</div>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '1rem' }}>
+                                            {editingUser === user.id ? (
+                                                <select
+                                                    value={formData.role}
+                                                    onChange={e => setFormData({ ...formData, role: e.target.value })}
+                                                    style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', color: 'white', padding: '0.25rem' }}
+                                                >
+                                                    <option value="student">Öğrenci</option>
+                                                    <option value="teacher">Öğretmen</option>
+                                                    <option value="admin">Yönetici</option>
+                                                </select>
+                                            ) : (
+                                                <span style={{
+                                                    padding: '0.25rem 0.75rem',
+                                                    borderRadius: '99px',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 'bold',
+                                                    backgroundColor: user.role === 'admin' ? 'rgba(239, 68, 68, 0.2)' : user.role === 'teacher' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(59, 130, 246, 0.2)',
+                                                    color: user.role === 'admin' ? '#fca5a5' : user.role === 'teacher' ? '#fcd34d' : '#93c5fd'
+                                                }}>
+                                                    {user.role === 'student' ? 'Öğrenci' : user.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '1rem' }}>
+                                            {editingUser === user.id ? (
+                                                <input
+                                                    value={formData.class_group}
+                                                    onChange={e => setFormData({ ...formData, class_group: e.target.value })}
+                                                    placeholder="Örn: 8-A"
+                                                    style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', color: 'white', padding: '0.25rem', width: '80px' }}
+                                                />
+                                            ) : (
+                                                <span style={{ color: 'var(--text-muted)' }}>{user.class_group || '-'}</span>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '1rem', display: 'flex', gap: '0.5rem' }}>
+                                            {editingUser === user.id ? (
+                                                <>
+                                                    <button onClick={() => handleSave(user.id)} style={{ padding: '0.25rem 0.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Kaydet</button>
+                                                    <button onClick={handleCancelEdit} style={{ padding: '0.25rem 0.5rem', background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}>İptal</button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button onClick={() => handleEditClick(user)} style={{ background: 'transparent', border: 'none', color: 'var(--color-primary)', cursor: 'pointer' }} title="Düzenle">
+                                                        <Edit2 size={18} />
+                                                    </button>
+                                                    <button onClick={() => handleDelete(user.id)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Sil">
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
             {/* Modal */}

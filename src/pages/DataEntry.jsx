@@ -148,7 +148,7 @@ export const DataEntry = () => {
                             type="date"
                             value={formData.date}
                             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                            style={{ padding: '0.75rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-app)', color: 'white', border: '1px solid var(--border-color)', outline: 'none' }}
+                            className="input-field"
                         />
                     </div>
 
@@ -159,14 +159,7 @@ export const DataEntry = () => {
                             required
                             value={formData.subject}
                             onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                            style={{
-                                padding: '0.75rem',
-                                borderRadius: 'var(--radius-sm)',
-                                background: 'var(--bg-app)',
-                                color: 'white',
-                                border: '1px solid var(--border-color)',
-                                outline: 'none'
-                            }}
+                            className="input-field"
                         >
                             <option value="">Ders Seçiniz</option>
                             {subjects.map(sub => (
@@ -176,7 +169,7 @@ export const DataEntry = () => {
                     </div>
 
                     {/* Publisher & Topic Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="form-grid">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             <label style={{ fontSize: '0.875rem', fontWeight: '500' }}>Yayınevi</label>
                             <input
@@ -184,7 +177,7 @@ export const DataEntry = () => {
                                 placeholder="Örn: Hız Yayınları"
                                 value={formData.publisher}
                                 onChange={(e) => setFormData({ ...formData, publisher: e.target.value })}
-                                style={{ padding: '0.75rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-app)', color: 'white', border: '1px solid var(--border-color)', outline: 'none' }}
+                                className="input-field"
                             />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -194,13 +187,13 @@ export const DataEntry = () => {
                                 placeholder="Örn: Kareköklü Sayılar"
                                 value={formData.topic}
                                 onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
-                                style={{ padding: '0.75rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-app)', color: 'white', border: '1px solid var(--border-color)', outline: 'none' }}
+                                className="input-field"
                             />
                         </div>
                     </div>
 
                     {/* Stats Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="form-grid">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             <label style={{ fontSize: '0.875rem', fontWeight: '500' }}>Soru Sayısı</label>
                             <input
@@ -209,7 +202,7 @@ export const DataEntry = () => {
                                 min="1"
                                 value={formData.count}
                                 onChange={(e) => setFormData({ ...formData, count: e.target.value })}
-                                style={{ padding: '0.75rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-app)', color: 'white', border: '1px solid var(--border-color)', outline: 'none' }}
+                                className="input-field"
                             />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -220,7 +213,7 @@ export const DataEntry = () => {
                                 max={formData.count}
                                 value={formData.correct}
                                 onChange={(e) => setFormData({ ...formData, correct: e.target.value })}
-                                style={{ padding: '0.75rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-app)', color: 'white', border: '1px solid var(--border-color)', outline: 'none' }}
+                                className="input-field"
                             />
                         </div>
                     </div>
@@ -246,108 +239,112 @@ export const DataEntry = () => {
             </div>
 
             {/* Current Data List (Editable) */}
-            <div className="glass-panel" style={{ padding: '1.5rem', overflowX: 'auto' }}>
+            <div className="glass-panel" style={{ padding: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Calendar size={20} /> Son Çözülenler
                 </h3>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                            <th style={{ padding: '1rem' }}>Tarih</th>
-                            <th style={{ padding: '1rem' }}>Ders</th>
-                            <th style={{ padding: '1rem' }}>Konu</th>
-                            <th style={{ padding: '1rem' }}>Yayınevi</th>
-                            <th style={{ padding: '1rem' }}>Soru/Doğru</th>
-                            <th style={{ padding: '1rem', textAlign: 'right' }}>İşlemler</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {[...dailyLogs].sort((a, b) => new Date(b.date) - new Date(a.date)).map((log) => (
-                            <tr key={log.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                <td style={{ padding: '1rem' }}>{log.date}</td>
-                                <td style={{ padding: '1rem' }}>
-                                    <span style={{
-                                        color: subjects.find(s => s.name === log.subject)?.color || 'white',
-                                        fontWeight: '500'
-                                    }}>
-                                        {log.subject}
-                                    </span>
-                                </td>
-                                <td style={{ padding: '1rem' }}>{log.topic || '-'}</td>
-                                <td style={{ padding: '1rem' }}>{log.publisher || '-'}</td>
-                                <td style={{ padding: '1rem' }}>
-                                    {log.count} / <span style={{ color: '#4ade80' }}>{log.correct}</span>
-                                </td>
-                                <td style={{ padding: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                                    <button
-                                        onClick={() => handleEdit(log)}
-                                        style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                                        title="Düzenle"
-                                    >
-                                        <Edit2 size={18} />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(log.id)}
-                                        style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                                        title="Sil"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </td>
+                <div className="table-container">
+                    <table className="data-table">
+                        <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                                <th style={{ padding: '1rem' }}>Tarih</th>
+                                <th style={{ padding: '1rem' }}>Ders</th>
+                                <th style={{ padding: '1rem' }}>Konu</th>
+                                <th style={{ padding: '1rem' }}>Yayınevi</th>
+                                <th style={{ padding: '1rem' }}>Soru/Doğru</th>
+                                <th style={{ padding: '1rem', textAlign: 'right' }}>İşlemler</th>
                             </tr>
-                        ))}
-                        {dailyLogs.length === 0 && (
-                            <tr><td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Henüz veri bulunmuyor.</td></tr>
-                        )}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {[...dailyLogs].sort((a, b) => new Date(b.date) - new Date(a.date)).map((log) => (
+                                <tr key={log.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                    <td style={{ padding: '1rem' }}>{log.date}</td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <span style={{
+                                            color: subjects.find(s => s.name === log.subject)?.color || 'white',
+                                            fontWeight: '500'
+                                        }}>
+                                            {log.subject}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '1rem' }}>{log.topic || '-'}</td>
+                                    <td style={{ padding: '1rem' }}>{log.publisher || '-'}</td>
+                                    <td style={{ padding: '1rem' }}>
+                                        {log.count} / <span style={{ color: '#4ade80' }}>{log.correct}</span>
+                                    </td>
+                                    <td style={{ padding: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                        <button
+                                            onClick={() => handleEdit(log)}
+                                            style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                                            title="Düzenle"
+                                        >
+                                            <Edit2 size={18} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(log.id)}
+                                            style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                                            title="Sil"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                            {dailyLogs.length === 0 && (
+                                <tr><td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Henüz veri bulunmuyor.</td></tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Matrix History View (Summary) */}
-            <div className="glass-panel" style={{ padding: '1.5rem', overflowX: 'auto' }}>
+            <div className="glass-panel" style={{ padding: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Calendar size={20} /> Özet Tablo (Matris)
                 </h3>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '0.875rem' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                            <th style={{ padding: '1rem', textAlign: 'left' }}>Tarih</th>
-                            {subjects.map(sub => (
-                                <th key={sub.name} style={{ padding: '1rem', color: sub.color }}>{sub.name}</th>
-                            ))}
-                            <th style={{ padding: '1rem', fontWeight: 'bold' }}>Toplam</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {matrixData.map((row, idx) => {
-                            const rowTotal = subjects.reduce((acc, sub) => acc + (row[sub.name] || 0), 0);
-                            return (
-                                <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                    <td style={{ padding: '1rem', textAlign: 'left', fontWeight: '500' }}>{row.date}</td>
-                                    {subjects.map(sub => (
-                                        <td key={sub.name} style={{ padding: '1rem' }}>
-                                            {row[sub.name] > 0 ? (
-                                                <span style={{
-                                                    padding: '0.25rem 0.5rem',
-                                                    borderRadius: '6px',
-                                                    backgroundColor: `${sub.color} 20`,
-                                                    color: sub.color,
-                                                    fontWeight: '600'
-                                                }}>
-                                                    {row[sub.name]}
-                                                </span>
-                                            ) : '-'}
-                                        </td>
-                                    ))}
-                                    <td style={{ padding: '1rem', fontWeight: 'bold' }}>{rowTotal}</td>
-                                </tr>
-                            );
-                        })}
-                        {matrixData.length === 0 && (
-                            <tr><td colSpan={subjects.length + 2} style={{ padding: '2rem', color: 'var(--text-muted)' }}>Henüz veri girişi yapılmamış.</td></tr>
-                        )}
-                    </tbody>
-                </table>
+                <div className="table-container">
+                    <table className="data-table" style={{ textAlign: 'center' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                                <th style={{ padding: '1rem', textAlign: 'left' }}>Tarih</th>
+                                {subjects.map(sub => (
+                                    <th key={sub.name} style={{ padding: '1rem', color: sub.color }}>{sub.name}</th>
+                                ))}
+                                <th style={{ padding: '1rem', fontWeight: 'bold' }}>Toplam</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {matrixData.map((row, idx) => {
+                                const rowTotal = subjects.reduce((acc, sub) => acc + (row[sub.name] || 0), 0);
+                                return (
+                                    <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                        <td style={{ padding: '1rem', textAlign: 'left', fontWeight: '500' }}>{row.date}</td>
+                                        {subjects.map(sub => (
+                                            <td key={sub.name} style={{ padding: '1rem' }}>
+                                                {row[sub.name] > 0 ? (
+                                                    <span style={{
+                                                        padding: '0.25rem 0.5rem',
+                                                        borderRadius: '6px',
+                                                        backgroundColor: `${sub.color} 20`,
+                                                        color: sub.color,
+                                                        fontWeight: '600'
+                                                    }}>
+                                                        {row[sub.name]}
+                                                    </span>
+                                                ) : '-'}
+                                            </td>
+                                        ))}
+                                        <td style={{ padding: '1rem', fontWeight: 'bold' }}>{rowTotal}</td>
+                                    </tr>
+                                );
+                            })}
+                            {matrixData.length === 0 && (
+                                <tr><td colSpan={subjects.length + 2} style={{ padding: '2rem', color: 'var(--text-muted)' }}>Henüz veri girişi yapılmamış.</td></tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Modal */}
