@@ -49,7 +49,7 @@ export const Dashboard = () => {
         .slice(0, 5);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div className="dashboard-container">
             {/* Header */}
             <div>
                 <h2 style={{ fontSize: '1.875rem', fontWeight: '700' }}>Genel Bakış</h2>
@@ -57,7 +57,7 @@ export const Dashboard = () => {
             </div>
 
             {/* KPIs */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+            <div className="kpi-grid">
                 <KPICard
                     title="Toplam Soru"
                     value={stats.totalQuestions}
@@ -85,7 +85,7 @@ export const Dashboard = () => {
             </div>
 
             {/* Main Content Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+            <div className="content-grid">
                 {/* Chart Column */}
                 <div className="glass-panel" style={{ padding: '1.5rem', minHeight: '400px' }}>
                     <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1.5rem' }}>Son 7 Gün İlerleme</h3>
