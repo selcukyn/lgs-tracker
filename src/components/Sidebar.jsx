@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
-import { LayoutDashboard, PenTool, BookOpen, LogOut, Users, ChevronDown, User, X } from 'lucide-react';
+import { LayoutDashboard, PenTool, BookOpen, LogOut, Users, ChevronDown, User, X, PieChart } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import logo from '../assets/logo.png';
 
@@ -11,6 +11,7 @@ export const Sidebar = ({ isMobile, isOpen, onClose }) => {
     // Navigation items - admin gets extra menu
     const navItems = [
         { icon: LayoutDashboard, label: 'Panel', path: '/' },
+        { icon: PieChart, label: 'Konu Analizi', path: '/analysis' },
         { icon: PenTool, label: 'Çözüm Girişi', path: '/entry' },
         { icon: BookOpen, label: 'Deneme Sonuçları', path: '/exams' },
         ...(userRole === 'admin' ? [{ icon: Users, label: 'Kullanıcı Yönetimi', path: '/admin-users' }] : [])

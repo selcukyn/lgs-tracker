@@ -1,11 +1,61 @@
 import React from 'react';
 import { useData } from '../context/DataContext';
 import { KPICard } from '../components/KPICard';
-import { Target, TrendingUp, Calendar, CheckCircle } from 'lucide-react';
+
+import { Target, TrendingUp, Calendar, CheckCircle, Edit2 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import confetti from 'canvas-confetti';
+import { Achievements } from '../components/Achievements';
 
 export const Dashboard = () => {
     const { stats, dailyLogs, examHistory } = useData();
+    const [weeklyGoal, setWeeklyGoal] = React.useState(() => {
+        return parseInt(localStorage.getItem('user_weekly_goal') || '500');
+    });
+    const [isEditingGoal, setIsEditingGoal] = React.useState(false);
+
+    // Calculate this week's progress
+    const thisWeekTotal = React.useMemo(() => {
+        if (!dailyLogs || dailyLogs.length === 0) return 0;
+
+        const now = new Date();
+        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)));
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        return dailyLogs
+            .filter(log => new Date(log.date) >= startOfWeek)
+            .reduce((acc, curr) => acc + (parseInt(curr.count) || 0), 0);
+    }, [dailyLogs]);
+
+    const progressPercentage = Math.min(100, Math.round((thisWeekTotal / weeklyGoal) * 100));
+
+    // Confetti effect when goal reached
+    React.useEffect(() => {
+        if (progressPercentage >= 100 && thisWeekTotal > 0) {
+            // Check if already celebrated today to avoid spam
+            const lastCelebration = localStorage.getItem('last_celebration_date');
+            const today = new Date().toISOString().split('T')[0];
+
+            if (lastCelebration !== today) {
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+                localStorage.setItem('last_celebration_date', today);
+            }
+        }
+    }, [progressPercentage, thisWeekTotal]);
+
+    const handleGoalUpdate = (e) => {
+        e.preventDefault();
+        const newGoal = parseInt(e.target.goal.value);
+        if (newGoal > 0) {
+            setWeeklyGoal(newGoal);
+            localStorage.setItem('user_weekly_goal', newGoal.toString());
+            setIsEditingGoal(false);
+        }
+    };
 
     // Process Last 7 Days for Chart
     const getLast7Days = () => {
@@ -54,6 +104,58 @@ export const Dashboard = () => {
             <div>
                 <h2 style={{ fontSize: '1.875rem', fontWeight: '700' }}>Genel Bakış</h2>
                 <p style={{ color: 'var(--text-muted)' }}>Sınav hazırlık sürecindeki son durum.</p>
+            </div>
+
+            {/* Weekly Goal Progress */}
+            <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>Bu Haftaki Hedef</h3>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                            {thisWeekTotal} / {weeklyGoal} Soru
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => setIsEditingGoal(!isEditingGoal)}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                    >
+                        <Edit2 size={18} />
+                    </button>
+                </div>
+
+                {/* Progress Bar */}
+                <div style={{ height: '12px', width: '100%', background: 'rgba(255,255,255,0.1)', borderRadius: '6px', overflow: 'hidden' }}>
+                    <div style={{
+                        height: '100%',
+                        width: `${progressPercentage}%`,
+                        background: 'linear-gradient(90deg, var(--color-primary), var(--color-secondary))',
+                        borderRadius: '6px',
+                        transition: 'width 1s ease-in-out',
+                        boxShadow: '0 0 10px rgba(99, 102, 241, 0.5)'
+                    }} />
+                </div>
+
+                {progressPercentage >= 100 && (
+                    <div style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <CheckCircle size={16} /> Harika! Haftalık hedefini tamamladın! 🎉
+                    </div>
+                )}
+
+                {/* Edit Goal Form */}
+                {isEditingGoal && (
+                    <form onSubmit={handleGoalUpdate} style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        <input
+                            name="goal"
+                            type="number"
+                            defaultValue={weeklyGoal}
+                            min="10"
+                            className="input-field"
+                            style={{ padding: '0.5rem' }}
+                            autoFocus
+                        />
+                        <button type="submit" className="btn btn-primary" style={{ padding: '0.5rem 1rem' }}>Kaydet</button>
+                    </form>
+                )}
             </div>
 
             {/* KPIs */}
@@ -133,6 +235,9 @@ export const Dashboard = () => {
                         )}
                     </div>
                 </div>
+
+                {/* Achievements */}
+                <Achievements />
             </div>
         </div>
     );

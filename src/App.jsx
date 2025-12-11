@@ -8,7 +8,8 @@ import { Exams } from './pages/Exams';
 import { ExamDetail } from './pages/ExamDetail';
 import { Login } from './pages/Login';
 import { MobileAuthConfirm } from './pages/MobileAuthConfirm';
-import { AdminUsers } from './pages/AdminUsers'; // Import
+import { AdminUsers } from './pages/AdminUsers';
+import { Analysis } from './pages/Analysis';
 
 // Helper component for Login redirection
 const LoginRoute = () => {
@@ -57,6 +58,7 @@ const AuthGuard = () => {
       <Route path="/" element={user ? <Layout /> : <Navigate to="/login" />}>
         <Route index element={<Dashboard />} />
         <Route path="entry" element={<DataEntry />} />
+        <Route path="analysis" element={<Analysis />} />
         <Route path="exams" element={<Exams />} />
         <Route path="exams/:id" element={<ExamDetail />} />
         <Route path="admin-users" element={<AdminUsers />} />
