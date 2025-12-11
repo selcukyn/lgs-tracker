@@ -44,7 +44,9 @@ export const MobileAuthConfirm = () => {
                         },
                     });
 
-                    supabase.removeChannel(channel);
+                    setTimeout(() => {
+                        supabase.removeChannel(channel);
+                    }, 2000);
                     setStatus('success');
                 }
             });

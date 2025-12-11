@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabase';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
@@ -9,16 +9,27 @@ export const Login = () => {
     const [loading, setLoading] = useState(false);
     const [qrMode, setQrMode] = useState(false);
     const [qrUrl, setQrUrl] = useState('');
+    const [connectionStatus, setConnectionStatus] = useState('disconnected'); // disconnected, connecting, connected, error
+    const channelIdRef = useRef(null);
+
+    // Form states
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     useEffect(() => {
         let channel;
         if (qrMode) {
-            const channelId = crypto.randomUUID();
-            setQrUrl(`${window.location.origin}/qr-auth?channel=${channelId}`);
+            // Generate channel ID only once per session
+            if (!channelIdRef.current) {
+                channelIdRef.current = crypto.randomUUID();
+            }
+            const currentChannelId = channelIdRef.current;
 
-            channel = supabase.channel(`auth-${channelId}`);
+            setQrUrl(`${window.location.origin}/qr-auth?channel=${currentChannelId}`);
+            setConnectionStatus('connecting');
+
+            channel = supabase.channel(`auth-${currentChannelId}`);
+
             channel.on('broadcast', { event: 'session_transfer' }, async ({ payload }) => {
                 if (payload.access_token && payload.refresh_token) {
                     const { error } = await supabase.auth.setSession({
@@ -29,8 +40,16 @@ export const Login = () => {
                         navigate('/');
                     }
                 }
-            }).subscribe();
+            })
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        setConnectionStatus('connected');
+                    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                        setConnectionStatus('error');
+                    }
+                });
         }
+
         return () => {
             if (channel) supabase.removeChannel(channel);
         };
@@ -118,9 +137,14 @@ export const Login = () => {
                             {qrUrl && <QRCodeSVG value={qrUrl} size={200} />}
                         </div>
                         <p style={{ marginTop: '1.5rem', textAlign: 'center', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                            Telefonunuzun kamerasını kullanarak<br />
                             bu kodu okutun ve girişi onaylayın.
                         </p>
+
+                        <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: connectionStatus === 'connected' ? '#4ade80' : connectionStatus === 'error' ? '#ef4444' : '#94a3b8' }}>
+                            {connectionStatus === 'connecting' && 'Sunucuya bağlanılıyor...'}
+                            {connectionStatus === 'connected' && 'Bağlantı hazır. Okutmanızı bekliyor.'}
+                            {connectionStatus === 'error' && 'Bağlantı hatası! Şirket ağınız engelliyor olabilir.'}
+                        </div>
                     </div>
                 ) : (
                     <form style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.5s ease' }}>
