@@ -29,7 +29,7 @@ type Props = {
     subjectResults: SubjectResult[]
 }
 
-export default function ExamList({ studentId, studentName, exams: serverExams, subjectResults }: Props) {
+export default function ExamList({ studentName, exams: serverExams, subjectResults }: Props) {
     const router = useRouter()
     const [exams, setExams] = useState<Exam[]>(serverExams)
     const [deletingId, setDeletingId] = useState<string | null>(null)

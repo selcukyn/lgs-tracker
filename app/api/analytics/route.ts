@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     try {
         const analytics = await generateAnalytics(studentId, supabase)
         return NextResponse.json(analytics)
-    } catch (e: any) {
-        return NextResponse.json({ error: e.message || 'Analiz oluşturulurken hata' }, { status: 500 })
+    } catch (e: unknown) {
+        return NextResponse.json({ error: (e as Error).message || 'Analiz oluşturulurken hata' }, { status: 500 })
     }
 }

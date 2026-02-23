@@ -63,19 +63,19 @@ export async function generateAnalytics(studentId: string, supabase: SupabaseCli
         .order('exam_date', { ascending: false })
 
     // Internal calculations require strictly ASC order (oldest to newest)
-    const examList = (exams ?? []).sort((a: any, b: any) => a.exam_date.localeCompare(b.exam_date))
+    const examList = (exams ?? []).sort((a: Record<string, unknown>, b: Record<string, unknown>) => String(a.exam_date).localeCompare(String(b.exam_date)))
 
-    let subjectResults: any[] = []
+    let subjectResults: Record<string, unknown>[] = []
     if (examList.length > 0) {
         const { data: subjects } = await supabase
             .from('exam_subject_results')
             .select('id, exam_id, subject, question_count, correct, wrong, blank, net, success_percentage')
-            .in('exam_id', examList.map((e: any) => e.id))
+            .in('exam_id', examList.map((e: Record<string, unknown>) => e.id))
         subjectResults = subjects ?? []
     }
 
     // Latest Score & Classification
-    const examsWithScore = examList.filter((e: any) => e.lgs_score != null)
+    const examsWithScore = examList.filter((e: Record<string, unknown>) => e.lgs_score != null)
     let latestScore: number | null = null
     let classification: AnalyticsClassification | null = null
 
@@ -91,11 +91,11 @@ export async function generateAnalytics(studentId: string, supabase: SupabaseCli
 
     // Trend
     // Take the last 3 exams (most recent 3) in ASC order
-    const last3Exams = examsWithScore.slice(-3).map((e: any) => ({
-        id: e.id,
-        name: e.exam_name,
-        date: e.exam_date,
-        score: e.lgs_score ?? 0
+    const last3Exams = examsWithScore.slice(-3).map((e: Record<string, unknown>) => ({
+        id: String(e.id),
+        name: String(e.exam_name),
+        date: String(e.exam_date),
+        score: Number(e.lgs_score ?? 0)
     }))
 
     let trendDirection: 'up' | 'down' | 'same' | 'none' = 'none'
@@ -112,10 +112,10 @@ export async function generateAnalytics(studentId: string, supabase: SupabaseCli
     // Subjects: Average Nets and Strongest/Weakest
     const sums: Record<string, number> = {}
     const counts: Record<string, number> = {}
-    subjectResults.forEach((sr: any) => {
+    subjectResults.forEach((sr: Record<string, unknown>) => {
         if (sr.net != null) {
-            const normSubj = normalizeSubject(sr.subject)
-            sums[normSubj] = (sums[normSubj] || 0) + sr.net
+            const normSubj = normalizeSubject(String(sr.subject))
+            sums[normSubj] = (sums[normSubj] || 0) + Number(sr.net)
             counts[normSubj] = (counts[normSubj] || 0) + 1
         }
     })
@@ -163,11 +163,11 @@ export async function generateAnalytics(studentId: string, supabase: SupabaseCli
     let percentile: number | null = null
     let percentileMessage: string | null = null
 
-    const validRankExams = examList.filter((e: any) => e.national_rank != null && e.total_participants != null && e.total_participants > 0)
+    const validRankExams = examList.filter((e: Record<string, unknown>) => e.national_rank != null && e.total_participants != null && Number(e.total_participants) > 0)
 
     if (validRankExams.length > 0) {
-        const latestWithRank = validRankExams.sort((a: any, b: any) => b.exam_date.localeCompare(a.exam_date))[0]
-        percentile = (latestWithRank.national_rank / latestWithRank.total_participants) * 100
+        const latestWithRank = validRankExams.sort((a: Record<string, unknown>, b: Record<string, unknown>) => String(b.exam_date).localeCompare(String(a.exam_date)))[0]
+        percentile = (Number(latestWithRank.national_rank) / Number(latestWithRank.total_participants)) * 100
         percentileMessage = `Türkiye genelinde %${percentile.toFixed(2)} dilimdesiniz.`
     }
 

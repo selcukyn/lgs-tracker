@@ -3,8 +3,6 @@ import { redirect } from 'next/navigation'
 import ViewPdfLink from '@/components/student/ViewPdfLink'
 import ProgressChart from '@/components/parent/ProgressChart'
 import SubjectTable from '@/components/parent/SubjectTable'
-import { LGS_SUBJECTS } from '@/lib/lgs'
-
 type Exam = {
     id: string; exam_name: string; exam_date: string
     total_score: number | null; general_rank: number | null
